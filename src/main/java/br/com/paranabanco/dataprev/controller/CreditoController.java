@@ -63,7 +63,7 @@ public class CreditoController implements CreditoControllerSwagger {
 
     @PostMapping
     @Override
-    public ResponseEntity<CreditoDTO> criar(CreditoDTO creditoDTO) {
+    public ResponseEntity<CreditoDTO> criar(@RequestBody CreditoDTO creditoDTO) {
         return new ResponseEntity<>(
                 creditoService.salvar(creditoMapper.creditoDTOToCredito(creditoDTO)),
                 HttpStatus.CREATED
@@ -74,6 +74,7 @@ public class CreditoController implements CreditoControllerSwagger {
     @Override
     public ResponseEntity<CreditoDTO> atualizar(@PathVariable Long id, @RequestBody CreditoDTO creditoDTO) {
         Credito credito = creditoMapper.creditoDTOToCredito(creditoDTO);
+        credito.setId(id);
         return ResponseEntity.ok(
                 creditoService.salvar(credito)
         );
