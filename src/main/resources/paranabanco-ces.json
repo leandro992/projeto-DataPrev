@@ -1,0 +1,104 @@
+{
+  "name": "paranabanco-ces",
+  "recordLength": 240,
+  "recordTypeSelector": { "start": 8, "end": 8 },          // Posição do tipo de registro (0,1,3,5,9)
+  "segmentSelector":   { "start": 14, "end": 14 },         // Posição do segmento (A/B) quando tipo=3
+  "records": [
+    {
+      "id": "0",
+      "name": "HeaderArquivo",
+      "match": { "type": "equals", "value": "0" },
+      "fields": [
+        { "name": "banco",              "start": 1,  "end": 3,  "type": "NUM" },
+        { "name": "lote",               "start": 4,  "end": 7,  "type": "NUM" },
+        { "name": "tipoRegistro",       "start": 8,  "end": 8,  "type": "NUM" },
+        { "name": "nomeEmpresa",        "start": 73, "end": 102, "type": "ALFA", "trim": true },
+        { "name": "nomeBanco",          "start": 103,"end": 132, "type": "ALFA", "trim": true },
+        { "name": "dataGeracao",        "start": 144,"end": 151, "type": "DATE", "format": "yyyyMMdd" },
+        { "name": "densidadeGravacao",  "start": 166,"end": 170, "type": "NUM" }
+      ]
+    },
+    {
+      "id": "1",
+      "name": "HeaderLote",
+      "match": { "type": "equals", "value": "1" },
+      "fields": [
+        { "name": "banco",              "start": 1,  "end": 3,  "type": "NUM" },
+        { "name": "lote",               "start": 4,  "end": 7,  "type": "NUM" },
+        { "name": "tipoRegistro",       "start": 8,  "end": 8,  "type": "NUM" },
+        { "name": "tipoOperacao",       "start": 9,  "end": 9,  "type": "ALFA" },
+        { "name": "tipoServico",        "start": 10, "end": 11, "type": "NUM" },
+        { "name": "formaLancamento",    "start": 12, "end": 13, "type": "NUM" },
+        { "name": "versaoLayoutLote",   "start": 14, "end": 16, "type": "NUM" },
+        { "name": "dataGravacao",       "start": 24, "end": 31, "type": "DATE", "format": "yyyyMMdd" }
+      ]
+    },
+    {
+      "id": "3A",
+      "name": "SegmentoA",
+      "match": { "type": "recordTypeAndSegment", "recordType": "3", "segment": "A" },
+      "fields": [
+        { "name": "banco",              "start": 1,  "end": 3,  "type": "NUM" },
+        { "name": "lote",               "start": 4,  "end": 7,  "type": "NUM" },
+        { "name": "tipoRegistro",       "start": 8,  "end": 8,  "type": "NUM" },
+        { "name": "numSequencial",      "start": 9,  "end": 13, "type": "NUM" },
+        { "name": "segmento",           "start": 14, "end": 14, "type": "ALFA" },
+        { "name": "tipoMovimento",      "start": 15, "end": 17, "type": "NUM" },
+        { "name": "codigoBancoFav",     "start": 18, "end": 20, "type": "NUM" },
+        { "name": "agencia",            "start": 24, "end": 28, "type": "NUM" },
+        { "name": "conta",              "start": 30, "end": 41, "type": "NUM" },
+        { "name": "dacConta",           "start": 42, "end": 42, "type": "ALFA" },
+        { "name": "nomeFavorecido",     "start": 44, "end": 73, "type": "ALFA", "trim": true },
+        { "name": "nossoNumero",        "start": 74, "end": 93, "type": "ALFA", "trim": true },
+        { "name": "dataPagamento",      "start": 94, "end": 101, "type": "DATE", "format": "yyyyMMdd" },
+        { "name": "moeda",              "start": 102,"end": 104, "type": "ALFA" },
+        { "name": "quantMoeda",         "start": 105,"end": 119, "type": "DEC", "implied": 5 },
+        { "name": "valorPagamento",     "start": 120,"end": 134, "type": "DEC", "implied": 2 },
+        { "name": "numDocAtribuido",    "start": 135,"end": 154, "type": "ALFA", "trim": true }
+      ]
+    },
+    {
+      "id": "3B",
+      "name": "SegmentoB",
+      "match": { "type": "recordTypeAndSegment", "recordType": "3", "segment": "B" },
+      "fields": [
+        { "name": "banco",              "start": 1,  "end": 3,  "type": "NUM" },
+        { "name": "lote",               "start": 4,  "end": 7,  "type": "NUM" },
+        { "name": "tipoRegistro",       "start": 8,  "end": 8,  "type": "NUM" },
+        { "name": "numSequencial",      "start": 9,  "end": 13, "type": "NUM" },
+        { "name": "segmento",           "start": 14, "end": 14, "type": "ALFA" },
+        { "name": "tipoInscricao",      "start": 18, "end": 18, "type": "NUM" },
+        { "name": "numeroInscricao",    "start": 19, "end": 32, "type": "NUM" },
+        { "name": "logradouro",         "start": 33, "end": 62, "type": "ALFA", "trim": true },
+        { "name": "bairro",             "start": 63, "end": 77, "type": "ALFA", "trim": true },
+        { "name": "cidade",             "start": 78, "end": 92, "type": "ALFA", "trim": true },
+        { "name": "cep",                "start": 93, "end": 100, "type": "NUM" },
+        { "name": "uf",                 "start": 101,"end": 102, "type": "ALFA" }
+      ]
+    },
+    {
+      "id": "5",
+      "name": "TrailerLote",
+      "match": { "type": "equals", "value": "5" },
+      "fields": [
+        { "name": "banco",              "start": 1,  "end": 3,  "type": "NUM" },
+        { "name": "lote",               "start": 4,  "end": 7,  "type": "NUM" },
+        { "name": "tipoRegistro",       "start": 8,  "end": 8,  "type": "NUM" },
+        { "name": "qtdeRegistros",      "start": 18, "end": 23, "type": "NUM" },
+        { "name": "somatorioValores",   "start": 24, "end": 41, "type": "DEC", "implied": 2 }
+      ]
+    },
+    {
+      "id": "9",
+      "name": "TrailerArquivo",
+      "match": { "type": "equals", "value": "9" },
+      "fields": [
+        { "name": "banco",              "start": 1,  "end": 3,  "type": "NUM" },
+        { "name": "lote",               "start": 4,  "end": 7,  "type": "NUM" },
+        { "name": "tipoRegistro",       "start": 8,  "end": 8,  "type": "NUM" },
+        { "name": "qtdeLotes",          "start": 18, "end": 23, "type": "NUM" },
+        { "name": "qtdeRegistros",      "start": 24, "end": 29, "type": "NUM" }
+      ]
+    }
+  ]
+}

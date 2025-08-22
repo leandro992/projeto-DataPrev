@@ -1,0 +1,58 @@
+spring:
+  application:
+    name: dataprev
+
+  datasource:
+    url: jdbc:h2:file:./database/paranabanco_db
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create          # (dev) usar Flyway/Liquibase em prod
+    show-sql: true
+    defer-datasource-initialization: true  # garante DDL antes do data.sql
+
+  h2:
+    console:
+      enabled: true             # http://localhost:8080/h2-console
+
+  batch:
+    jdbc:
+      initialize-schema: always # inicializa schema do Spring Batch
+    job:
+      enabled: false            # não roda jobs no startup
+
+  sql:
+    init:
+      mode: always              # força execução de schema.sql/data.sql sempre
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: DEBUG
+        orm:
+          tool:
+            schema: DEBUG
+
+# Swagger / OpenAPI (springdoc)
+springdoc:
+  api-docs:
+    enabled: true               # /v3/api-docs e /v3/api-docs.yaml
+  swagger-ui:
+    enabled: true               # /swagger-ui.html
+    # path: /swagger-ui.html    # opcional (padrão já é /swagger-ui.html)
+
+---
+# (Opcional) Produção: manter /v3/api-docs para CI e desligar a UI
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+springdoc:
+  api-docs.enabled: true
+  swagger-ui.enabled: true
