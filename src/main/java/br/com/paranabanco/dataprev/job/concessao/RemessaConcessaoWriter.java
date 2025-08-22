@@ -3,6 +3,7 @@ package br.com.paranabanco.dataprev.job.concessao;
 import br.com.paranabanco.dataprev.domain.Beneficio;
 import br.com.paranabanco.dataprev.domain.Credito;
 import br.com.paranabanco.dataprev.dto.RemessaCreditoDTO;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.StepExecution;
 import org.springframework.batch.core.annotation.AfterStep;
 import org.springframework.batch.core.annotation.BeforeStep;
@@ -20,6 +21,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+@Slf4j
 public class RemessaConcessaoWriter implements ItemWriter<RemessaCreditoDTO> {
 
     private final String outputFilePath;
@@ -78,6 +80,6 @@ public class RemessaConcessaoWriter implements ItemWriter<RemessaCreditoDTO> {
             writer.write(RemessaConcessaoLayoutBuilder.buildTrailerLote21(uniqueBeneficios.size()));
             writer.newLine();
         }
-        System.out.println("Arquivo de Remessa de Concessão gerado em: " + outputFilePath);
+        log.info("Arquivo de Remessa de Concessão gerado em: {}", outputFilePath);
     }
 }
