@@ -46,6 +46,11 @@ springdoc:
     enabled: true               # /swagger-ui.html
     # path: /swagger-ui.html    # opcional (padrão já é /swagger-ui.html)
 
+
+dataprev:
+  remessa:
+    output-dir: build/output
+
 ---
 # (Opcional) Produção: manter /v3/api-docs para CI e desligar a UI
 spring:

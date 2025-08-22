@@ -5,6 +5,7 @@ import br.com.paranabanco.dataprev.dto.RemessaCreditoDTO;
 import br.com.paranabanco.dataprev.job.concessao.RemessaConcessaoWriter;
 import br.com.paranabanco.dataprev.job.concessao.RemessaCreditoProcessor;
 import jakarta.persistence.EntityManagerFactory;
+import lombok.RequiredArgsConstructor;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.job.builder.JobBuilder;
@@ -12,25 +13,22 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.database.JpaPagingItemReader;
 import org.springframework.batch.item.database.builder.JpaPagingItemReaderBuilder;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 @Configuration
+@RequiredArgsConstructor
 public class RemessaCreditoJobConfig {
 
-    @Autowired
-    private JobRepository jobRepository;
+    private final JobRepository jobRepository;
+    private final PlatformTransactionManager transactionManager;
+    private final EntityManagerFactory entityManagerFactory;
+    private final RemessaCreditoProcessor remessaCreditoProcessor;
 
-    @Autowired
-    private PlatformTransactionManager transactionManager;
-
-    @Autowired
-    private EntityManagerFactory entityManagerFactory;
-
-    @Autowired
-    private RemessaCreditoProcessor remessaCreditoProcessor;
+    @Value("${dataprev.remessa.output-dir}")
+    private String remessaOutputDir;
 
     @Bean
     public Job gerarArquivoConcessaoJob() {
@@ -41,7 +39,7 @@ public class RemessaCreditoJobConfig {
 
     @Bean
     public Step gerarRemessaConcessaoStep() {
-        RemessaConcessaoWriter writer = new RemessaConcessaoWriter("build/output");
+        RemessaConcessaoWriter writer = new RemessaConcessaoWriter(remessaOutputDir);
         return new StepBuilder("gerarRemessaConcessaoStep", jobRepository)
                 .<Credito, RemessaCreditoDTO>chunk(100, transactionManager)
                 .reader(concessaoItemReader())
