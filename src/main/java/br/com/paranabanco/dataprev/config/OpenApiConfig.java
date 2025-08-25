@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @Configuration
 public class OpenApiConfig {
 
+    @Bean
     OpenAPI baseOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
