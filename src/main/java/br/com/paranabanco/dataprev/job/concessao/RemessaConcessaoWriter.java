@@ -3,7 +3,6 @@ package br.com.paranabanco.dataprev.job.concessao;
 import br.com.paranabanco.dataprev.utils.CnabRecord;
 import br.com.paranabanco.dataprev.utils.OutputPathResolver;
 import br.com.paranabanco.dataprev.utils.PositionalFormatter;
-import lombok.RequiredArgsConstructor;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
 import org.springframework.beans.factory.annotation.Value;
@@ -16,20 +15,13 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 
 
+@Component
 public class RemessaConcessaoWriter implements ItemWriter<CnabRecord> {
 
     private final OutputPathResolver outputPathResolver;
     private final PositionalFormatter positionalFormatter;
     private final Charset charset;
     private final String fileName;
-
-    // Construtor padrão necessário para Spring
-    public RemessaConcessaoWriter() {
-        this.outputPathResolver = new OutputPathResolver();
-        this.positionalFormatter = null; // será injetado
-        this.charset = Charset.forName("ISO-8859-1");
-        this.fileName = "FHMLCON16.D0000001.d";
-    }
 
     public RemessaConcessaoWriter(OutputPathResolver outputPathResolver,
                                   PositionalFormatter positionalFormatter,
