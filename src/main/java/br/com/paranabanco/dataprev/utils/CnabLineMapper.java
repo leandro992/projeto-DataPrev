@@ -4,12 +4,10 @@ import org.springframework.batch.item.file.LineMapper;
 import org.springframework.batch.item.file.transform.FieldSet;
 import org.springframework.batch.item.file.transform.FixedLengthTokenizer;
 import org.springframework.batch.item.file.transform.Range;
-import org.springframework.stereotype.Component;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
 
-@Component
 public class CnabLineMapper implements LineMapper<CnabRecord> {
     private final FixedLengthTokenizer tk240;
     private final FixedLengthTokenizer tk480;
