@@ -14,9 +14,15 @@ Thumbs.db
 *.iws
 
 # Gradle
-.gradle/
-build/
+/.gradle/
+/build/
 !gradle-wrapper.jar
+
+# Project-specific
+database/
+*.mv.db
+*.trace.db
+/out/
 
 # Java
 *.class
