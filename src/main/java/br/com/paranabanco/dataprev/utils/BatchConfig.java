@@ -84,17 +84,17 @@ public class BatchConfig  {
 
     @Bean
     @Qualifier("cnabWriter")
-    public CnabItemWriter writer(@Qualifier("positionalFormatter") PositionalFormatter formatter) {
-        // Resolve o diretório de saída e nome do arquivo a partir do YAML
+    public CnabItemWriter writer(@Qualifier("positionalFormatter") PositionalFormatter formatter,
+                                 OutputPathResolver resolver) {
         Path outDir = (props.getOutputDir() == null || props.getOutputDir().isBlank())
-                ? Paths.get("src/main/resources/generated")
+                ? null
                 : Paths.get(props.getOutputDir());
 
         String outName = (props.getOutputName() == null || props.getOutputName().isBlank())
-                ? "HMLCES18.B254.D0000001.txt"
+                ? null
                 : props.getOutputName();
 
-        return new CnabItemWriter(outDir, outName, formatter);
+        return new CnabItemWriter(outDir, outName, formatter, resolver);
     }
 
     private static Charset charsetOf(Charset cs) {
