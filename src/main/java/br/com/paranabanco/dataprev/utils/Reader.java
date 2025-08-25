@@ -7,6 +7,7 @@ import org.springframework.stereotype.Service;
 import br.com.paranabanco.dataprev.domain.LinhaDoArquivo;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +18,7 @@ public class Reader {
     @Value("${leitura.arquivo.caminho}")
     private Resource arquivoResource;
 
-    public List<LinhaDoArquivo> lerLinhasDoArquivo() throws Exception {
+    public List<LinhaDoArquivo> lerLinhasDoArquivo() throws IOException, EmptyFileException {
         List<LinhaDoArquivo> linhasLidas = new ArrayList<>();
 
         try (BufferedReader reader = new BufferedReader(new InputStreamReader(arquivoResource.getInputStream()))) {
@@ -29,7 +30,7 @@ public class Reader {
         }
 
         if (linhasLidas.isEmpty()) {
-            throw new Exception("O arquivo está vazio!");
+            throw new EmptyFileException("O arquivo está vazio!");
         }
 
         return linhasLidas;
