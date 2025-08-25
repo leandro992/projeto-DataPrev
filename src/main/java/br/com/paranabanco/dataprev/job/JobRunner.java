@@ -4,10 +4,12 @@ import br.com.paranabanco.dataprev.service.CreditoService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.java.Log;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 @Log
 @RequiredArgsConstructor
+@Profile("dev")
 @Component
 public class JobRunner implements CommandLineRunner {
 
