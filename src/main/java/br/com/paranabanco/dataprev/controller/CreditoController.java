@@ -94,7 +94,13 @@ public class CreditoController implements CreditoControllerSwagger {
     @PutMapping("/{id}")
     @Override
     public ResponseEntity<CreditoDTO> atualizar(@PathVariable Long id, @RequestBody CreditoDTO creditoDTO) {
+        if (creditoDTO.id() != null && !creditoDTO.id().equals(id)) {
+            throw new IllegalArgumentException("ID do corpo e do caminho não coincidem");
+        }
+
         Credito credito = creditoMapper.creditoDTOToCredito(creditoDTO);
+        credito.setId(id);
+
         return ResponseEntity.ok(
                 creditoService.salvar(credito)
         );
