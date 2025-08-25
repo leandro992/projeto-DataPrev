@@ -16,19 +16,27 @@ public class CnabItemWriter implements ItemStreamWriter<String> {
     private final Path outputDir;
     private final String outputName;
     private final PositionalFormatter formatter;
+    private final OutputPathResolver resolver;
     private BufferedWriter writer;
 
-    public CnabItemWriter(Path outputDir, String outputName, PositionalFormatter formatter) {
+    public CnabItemWriter(Path outputDir, String outputName, PositionalFormatter formatter,
+                          OutputPathResolver resolver) {
         this.outputDir = outputDir;
         this.outputName = outputName;
         this.formatter = formatter;
+        this.resolver = resolver;
     }
 
     @Override
     public void open(ExecutionContext executionContext) throws ItemStreamException {
         try {
-            Path dir = resolveWritableResourcesDir(outputDir);
-            Files.createDirectories(dir);
+            Path dir;
+            if (outputDir != null) {
+                dir = outputDir;
+                Files.createDirectories(dir);
+            } else {
+                dir = resolver.resolveBaseDir();
+            }
 
             String fileName = (outputName == null || outputName.isBlank())
                     ? defaultName()
@@ -53,12 +61,6 @@ public class CnabItemWriter implements ItemStreamWriter<String> {
         if (writer != null) {
             try { writer.close(); } catch (IOException ignored) {}
         }
-    }
-
-    private static Path resolveWritableResourcesDir(Path configured) {
-        if (configured != null) return configured;
-        // padrão: src/main/resources/generated
-        return Paths.get("src", "main", "resources", "generated");
     }
 
     private static String defaultName() {
