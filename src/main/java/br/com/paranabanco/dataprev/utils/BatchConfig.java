@@ -58,9 +58,8 @@ public class BatchConfig  {
         return new CnabLineMapper();
     }
 
-    @Bean
-    @Qualifier("cnabReader")
-    public FlatFileItemReader<CnabRecord> reader(@Qualifier("cnabLineMapper") CnabLineMapper cnabLineMapper) {
+    @Bean(name = "cnabReader")
+    public FlatFileItemReader<CnabRecord> cnabReader(@Qualifier("cnabLineMapper") CnabLineMapper cnabLineMapper) {
         FlatFileItemReader<CnabRecord> r = new FlatFileItemReader<>();
         r.setResource(props.getFile());
         r.setEncoding(charsetOf(props.getCharset()).name());

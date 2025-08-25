@@ -1,12 +1,10 @@
 package br.com.paranabanco.dataprev.utils;
 
-import org.springframework.stereotype.Component;
 
 import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 
 
-@Component
 public final class PositionalFormatter {
 
     private final CnabLineMapper cnabLineMapper;
