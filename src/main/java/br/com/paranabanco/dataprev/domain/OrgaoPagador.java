@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Entity
 @Data
 @AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 public class OrgaoPagador {
     @Id
@@ -27,3 +27,4 @@ public class OrgaoPagador {
     @JoinColumn(name = "banco_id", nullable = false)
     private Banco banco;
 }
+

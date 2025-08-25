@@ -11,7 +11,7 @@ import lombok.NoArgsConstructor;
 @Entity(name = "AGENCIA_INSS")
 @Data
 @AllArgsConstructor
-@NoArgsConstructor(access = AccessLevel.PRIVATE)
+@NoArgsConstructor(access = AccessLevel.PROTECTED)
 @Builder
 public class AgenciaINSS {
     @Id
