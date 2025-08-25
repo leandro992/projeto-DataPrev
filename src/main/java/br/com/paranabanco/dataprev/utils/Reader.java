@@ -1,14 +1,13 @@
 package br.com.paranabanco.dataprev.utils;
 
-// 1. ADICIONE ESTE IMPORT
-import org.springframework.core.io.Resource; 
+import org.springframework.core.io.Resource;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import br.com.paranabanco.dataprev.domain.LinhaDoArquivo;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,17 +18,18 @@ public class Reader {
     private Resource arquivoResource;
 
     public List<LinhaDoArquivo> lerLinhasDoArquivo() throws Exception {
-        Path caminho = Path.of(arquivoResource.getURI());
-        
-        List<String> todasAsLinhas = Files.readAllLines(caminho);
-        
-        if (todasAsLinhas.isEmpty()) {
-            throw new Exception("O arquivo está vazio!");
+        List<LinhaDoArquivo> linhasLidas = new ArrayList<>();
+
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(arquivoResource.getInputStream()))) {
+            String linha;
+            int numeroLinha = 1;
+            while ((linha = reader.readLine()) != null) {
+                linhasLidas.add(new LinhaDoArquivo(numeroLinha++, linha));
+            }
         }
 
-        List<LinhaDoArquivo> linhasLidas = new ArrayList<>();
-        for (int i = 0; i < todasAsLinhas.size(); i++) {
-            linhasLidas.add(new LinhaDoArquivo(i + 1, todasAsLinhas.get(i)));
+        if (linhasLidas.isEmpty()) {
+            throw new Exception("O arquivo está vazio!");
         }
 
         return linhasLidas;
