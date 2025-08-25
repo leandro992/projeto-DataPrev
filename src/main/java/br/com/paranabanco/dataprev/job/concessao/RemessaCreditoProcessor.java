@@ -5,7 +5,6 @@ import br.com.paranabanco.dataprev.dto.RemessaCreditoDTO;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.stereotype.Component;
 
-@Component
 public class RemessaCreditoProcessor implements ItemProcessor<Credito, RemessaCreditoDTO> {
 
     @Override

@@ -1,85 +1,66 @@
 package br.com.paranabanco.dataprev.job.concessao;
 
-import br.com.paranabanco.dataprev.domain.Beneficio;
-import br.com.paranabanco.dataprev.domain.Credito;
-import br.com.paranabanco.dataprev.dto.RemessaCreditoDTO;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.StepExecution;
-import org.springframework.batch.core.annotation.AfterStep;
-import org.springframework.batch.core.annotation.BeforeStep;
+import br.com.paranabanco.dataprev.utils.CnabRecord;
+import br.com.paranabanco.dataprev.utils.OutputPathResolver;
+import br.com.paranabanco.dataprev.utils.PositionalFormatter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ItemWriter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 
 import java.io.BufferedWriter;
-import java.io.IOException;
-import java.math.BigDecimal;
+import java.nio.charset.Charset;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
+import java.nio.file.StandardOpenOption;
 
-@Slf4j
-public class RemessaConcessaoWriter implements ItemWriter<RemessaCreditoDTO> {
 
-    private final String outputFilePath;
-    private final List<Credito> accumulatedCredits = new ArrayList<>();
+public class RemessaConcessaoWriter implements ItemWriter<CnabRecord> {
 
-    public RemessaConcessaoWriter(String outputDirectory) {
-        this.outputFilePath = Paths.get(outputDirectory, "FSUBCON1n.txt").toString();
+    private final OutputPathResolver outputPathResolver;
+    private final PositionalFormatter positionalFormatter;
+    private final Charset charset;
+    private final String fileName;
+
+    // Construtor padrão necessário para Spring
+    public RemessaConcessaoWriter() {
+        this.outputPathResolver = new OutputPathResolver();
+        this.positionalFormatter = null; // será injetado
+        this.charset = Charset.forName("ISO-8859-1");
+        this.fileName = "FHMLCON16.D0000001.d";
     }
 
-    @BeforeStep
-    public void beforeStep(StepExecution stepExecution) {
-        accumulatedCredits.clear();
+    public RemessaConcessaoWriter(OutputPathResolver outputPathResolver,
+                                  PositionalFormatter positionalFormatter,
+                                  @Value("${app.cnab.charset:ISO-8859-1}") String charsetName,
+                                  @Value("${app.output.fileName:FHMLCON16.D0000001.d}") String fileName) {
+        this.outputPathResolver = outputPathResolver;
+        this.positionalFormatter = positionalFormatter;
+        this.charset = Charset.forName(charsetName);
+        this.fileName = fileName;
     }
 
     @Override
-    public void write(Chunk<? extends RemessaCreditoDTO> chunk) throws Exception {
-        for (RemessaCreditoDTO item : chunk.getItems()) {
-            accumulatedCredits.add(item.getCredito());
+    public void write(Chunk<? extends CnabRecord> chunk) throws Exception {
+        Path dir = outputPathResolver.resolveBaseDir(); // -> resources/generated
+        Path file = dir.resolve(fileName);
+
+        // APPEND para suportar múltiplos chunks; se quiser “limpar” a cada execução,
+        // apague o arquivo no início do job com um listener.
+        try (BufferedWriter bw = Files.newBufferedWriter(
+                file, charset,
+                StandardOpenOption.CREATE,
+                StandardOpenOption.APPEND)) {
+
+            for (CnabRecord rec : chunk.getItems()) {
+                String line = positionalFormatter.format(rec); // Formatter chama o mapper internamente
+                bw.write(line);
+                bw.newLine();
+            }
         }
+
+        System.out.println("Arquivo gerado em: " + file.toAbsolutePath());
     }
 
-    @AfterStep
-    public void afterStep(StepExecution stepExecution) throws IOException {
-        Path path = Paths.get(outputFilePath);
-        Files.createDirectories(path.getParent());
-
-        try (BufferedWriter writer = Files.newBufferedWriter(path)) {
-            // --- GERAÇÃO DO LOTE 20 ---
-            writer.write(RemessaConcessaoLayoutBuilder.buildHeaderLote20e21("20", "01")); // Meio de Pagto 01 = Cartão Magnético
-            writer.newLine();
-
-            BigDecimal totalValorLote20 = BigDecimal.ZERO;
-            for (Credito credito : accumulatedCredits) {
-                writer.write(RemessaConcessaoLayoutBuilder.buildDetalheLote20(credito));
-                writer.newLine();
-                totalValorLote20 = totalValorLote20.add(credito.getValorLiquidoCredito());
-            }
-
-            writer.write(RemessaConcessaoLayoutBuilder.buildTrailerLote20(accumulatedCredits.size(), totalValorLote20));
-            writer.newLine();
-
-            // --- GERAÇÃO DO LOTE 21 ---
-            Map<String, Beneficio> uniqueBeneficios = new ConcurrentHashMap<>();
-            for (Credito credito : accumulatedCredits) {
-                uniqueBeneficios.put(credito.getBeneficio().getNumeroBeneficio(), credito.getBeneficio());
-            }
-
-            writer.write(RemessaConcessaoLayoutBuilder.buildHeaderLote20e21("21", "01"));
-            writer.newLine();
-
-            for (Beneficio beneficio : uniqueBeneficios.values()) {
-                writer.write(RemessaConcessaoLayoutBuilder.buildDetalheLote21(beneficio));
-                writer.newLine();
-            }
-
-            writer.write(RemessaConcessaoLayoutBuilder.buildTrailerLote21(uniqueBeneficios.size()));
-            writer.newLine();
-        }
-        log.info("Arquivo de Remessa de Concessão gerado em: {}", outputFilePath);
-    }
 }

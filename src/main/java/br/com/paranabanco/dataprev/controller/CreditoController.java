@@ -7,6 +7,10 @@ import br.com.paranabanco.dataprev.enumeration.TipoCredito;
 import br.com.paranabanco.dataprev.mapper.CreditoMapper;
 import br.com.paranabanco.dataprev.service.CreditoService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -27,6 +31,8 @@ public class CreditoController implements CreditoControllerSwagger {
 
     private final CreditoService creditoService;
     private final CreditoMapper creditoMapper;
+    private final JobLauncher jobLauncher;
+    private final Job cnabJob;
 
 
     @PostMapping("/processar-remessa")
@@ -34,6 +40,21 @@ public class CreditoController implements CreditoControllerSwagger {
     public ResponseEntity<String> processarRemessa() {
         creditoService.processarRemessaCredito();
         return ResponseEntity.ok("Processamento de remessa iniciado com sucesso");
+    }
+
+    @PostMapping("/processar-cnab")
+    public ResponseEntity<String> processarCnab() {
+        try {
+            JobParameters jobParameters = new JobParametersBuilder()
+                    .addLong("timestamp", System.currentTimeMillis())
+                    .toJobParameters();
+            
+            jobLauncher.run(cnabJob, jobParameters);
+            return ResponseEntity.ok("Job CNAB executado com sucesso! Verifique o arquivo gerado em resources/generated");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro ao executar job CNAB: " + e.getMessage());
+        }
     }
 
 
@@ -63,7 +84,7 @@ public class CreditoController implements CreditoControllerSwagger {
 
     @PostMapping
     @Override
-    public ResponseEntity<CreditoDTO> criar(@RequestBody CreditoDTO creditoDTO) {
+    public ResponseEntity<CreditoDTO> criar(CreditoDTO creditoDTO) {
         return new ResponseEntity<>(
                 creditoService.salvar(creditoMapper.creditoDTOToCredito(creditoDTO)),
                 HttpStatus.CREATED
@@ -74,7 +95,6 @@ public class CreditoController implements CreditoControllerSwagger {
     @Override
     public ResponseEntity<CreditoDTO> atualizar(@PathVariable Long id, @RequestBody CreditoDTO creditoDTO) {
         Credito credito = creditoMapper.creditoDTOToCredito(creditoDTO);
-        credito.setId(id);
         return ResponseEntity.ok(
                 creditoService.salvar(credito)
         );

@@ -34,14 +34,7 @@ public final class RemessaConcessaoLayoutBuilder {
                 StringUtils.rightPad(credito.getInicioPeriodo().format(DATE_FORMATTER_AAAAMMDD), 8) +
                 StringUtils.leftPad(credito.getNaturezaCredito(), 2, '0') +
                 StringUtils.rightPad(credito.getDataMovimentoCredito().format(DATE_FORMATTER_AAAAMMDD), 8) +
-                StringUtils.leftPad(
-                        Objects.toString(
-                                credito.getOrgaoPagador() == null ? null : credito.getOrgaoPagador().getCodigoOrgaoPagador(),
-                                ""
-                        ),
-                        6,
-                        '0'
-                ) +
+                StringUtils.leftPad(credito.getOrgaoPagador().getCodigoOrgaoPagador(), 6, '0') +
                 formatDecimal(credito.getValorLiquidoCredito(), 10, 2);
         return StringUtils.rightPad(sb, 480);
     }
@@ -63,14 +56,7 @@ public final class RemessaConcessaoLayoutBuilder {
                 StringUtils.leftPad(beneficio.getNumeroBeneficio(), 10) +
                 StringUtils.leftPad(beneficio.getOrgaoPagador().getCodigoOrgaoPagador(), 6, '0') +
                 StringUtils.leftPad("41", 3, '0') +
-                StringUtils.leftPad(
-                        Objects.toString(
-                                beneficio.getAgenciaInss() == null ? null : beneficio.getAgenciaInss().getCodigoAgencia(),
-                                ""
-                        ),
-                        8,
-                        '0'
-                ) +
+                StringUtils.leftPad(beneficio.getAgenciaInss().getCodigoAgencia(), 8, '0') +
                 (beneficio.isInConcJudSemCpf() ? "1" : "0");
         return StringUtils.rightPad(sb, 480);
     }

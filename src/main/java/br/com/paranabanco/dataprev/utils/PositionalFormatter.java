@@ -1,16 +1,32 @@
 package br.com.paranabanco.dataprev.utils;
 
-import lombok.experimental.UtilityClass;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.stereotype.Component;
 
-@UtilityClass
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
+
+@Component
 public final class PositionalFormatter {
-    public static String format(String value, int length) {
-        return StringUtils.rightPad(value != null ? value : "", length, ' ');
+
+    private final CnabLineMapper cnabLineMapper;
+    private final Charset charset;
+
+    public PositionalFormatter(CnabLineMapper cnabLineMapper) {
+        this(cnabLineMapper, StandardCharsets.ISO_8859_1);
     }
 
-    public static String format(Number value, int length) {
-        String numberStr = value != null ? value.toString().replace(".", "") : "0";
-        return StringUtils.leftPad(numberStr, length, '0');
+    public PositionalFormatter(CnabLineMapper cnabLineMapper, Charset charset) {
+        this.cnabLineMapper = cnabLineMapper;
+        this.charset = charset;
+    }
+
+    /** Converte o record para linha posicional (240/480). */
+    public String format(CnabRecord rec) {
+        return cnabLineMapper.toLine(rec);
+    }
+
+    public Charset getCharset() {
+        return charset;
     }
 }
