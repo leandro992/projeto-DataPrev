@@ -46,6 +46,19 @@ springdoc:
     enabled: true               # /swagger-ui.html
     # path: /swagger-ui.html    # opcional (padrão já é /swagger-ui.html)
 
+app:
+  cnab:
+    file: classpath:test-cnab-480.txt     # arquivo de ENTRADA p/ testes CNAB-480
+    charset: US-ASCII
+    # Diretório de saída apontando para a pasta de resources do projeto (modo dev/IDE)
+    output-dir: "src/main/resources/generated"
+    # Nome do arquivo de saída. Ajuste conforme rótulo desejado.
+    output-name: "processed-cnab-480-output.txt"
+
+leitura:
+  arquivo:
+    caminho: classpath:HMLCES18.B254.D0000001
+
 ---
 # (Opcional) Produção: manter /v3/api-docs para CI e desligar a UI
 spring:
@@ -57,12 +70,3 @@ springdoc:
   api-docs.enabled: true
   swagger-ui.enabled: true
 
-
-app:
-  cnab:
-    file: classpath:test-cnab-480.txt     # arquivo de ENTRADA p/ testes CNAB-480
-    charset: US-ASCII
-    # Diretório de saída apontando para a pasta de resources do projeto (modo dev/IDE)
-    output-dir: "src/main/resources/generated"
-    # Nome do arquivo de saída. Ajuste conforme rótulo desejado.
-    output-name: "processed-cnab-480-output.txt"
