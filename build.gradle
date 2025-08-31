@@ -45,6 +45,9 @@ dependencies {
     implementation("com.fasterxml.jackson.core:jackson-databind")
     implementation("com.fasterxml.jackson.module:jackson-module-parameter-names")
 
+    // SFTP client
+    implementation 'com.jcraft:jsch:0.1.55'
+
     compileOnly 'org.projectlombok:lombok'
     annotationProcessor 'org.mapstruct:mapstruct-processor:1.6.3'
     annotationProcessor 'org.projectlombok:lombok'

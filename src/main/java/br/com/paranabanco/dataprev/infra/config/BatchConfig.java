@@ -14,6 +14,10 @@ import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.core.step.builder.StepBuilder;
 import org.springframework.batch.item.ItemProcessor;
 import org.springframework.batch.item.file.FlatFileItemReader;
+import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.batch.support.transaction.ResourcelessTransactionManager;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.context.annotation.Bean;
@@ -63,10 +67,18 @@ public class BatchConfig  {
     }
 
     @Bean(name = "cnabReader")
-    public FlatFileItemReader<CnabRecord> cnabReader(@Qualifier("cnabLineMapper") CnabLineMapper cnabLineMapper) {
+    @StepScope
+    public FlatFileItemReader<CnabRecord> cnabReader(
+            @Qualifier("cnabLineMapper") CnabLineMapper cnabLineMapper,
+            @Value("#{jobParameters['input.file']}") String inputFileParam) {
         FlatFileItemReader<CnabRecord> r = new FlatFileItemReader<>();
-        var res = props.getInputFile();
-        System.out.println(">> app.cnab.file = " + (res != null ? res.toString() : "null"));
+        Resource res;
+        if (inputFileParam != null && !inputFileParam.isBlank()) {
+            res = new FileSystemResource(inputFileParam);
+        } else {
+            res = props.getInputFile();
+        }
+        System.out.println(">> Reader usando recurso = " + (res != null ? res.toString() : "null"));
         r.setResource(res);
         r.setEncoding(charsetOf(props.getCharset()).name());
         r.setLinesToSkip(0);

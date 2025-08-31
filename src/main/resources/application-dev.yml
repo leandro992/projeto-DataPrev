@@ -90,3 +90,12 @@ app:
 leitura:
   arquivo:
     caminho: classpath:test-cnab-480.txt
+
+# Configuração do CONNECT (DEV - SFTP simulado)
+connect:
+  host: 127.0.0.1 # sftp.exemplo.com
+  port: 2222   # porta padrão
+  username: connect
+  password: connect
+  remote-dir: retorno  # diretório onde os arquivos residem
+
