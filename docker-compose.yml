@@ -1,0 +1,20 @@
+version: "3.9"
+services:
+  sqlserver:
+    platform: linux/amd64           # mantenha em ARM; opcional em Intel/AMD
+    image: mcr.microsoft.com/azure-sql-edge:latest   # mcr.microsoft.com/mssql/server:2022-latest
+    container_name: dataprev-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "Str0ng!Passw0rd"
+      MSSQL_PID: "Developer"
+    ports:
+      - "1433:1433"
+    healthcheck:
+      test: ["CMD", "/opt/mssql-tools18/bin/sqlcmd", "-S", "localhost,1433", "-U", "sa", "-No", "-C", "-Q", "SELECT 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    restart: unless-stopped
+    # volumes:                      # se quiser scripts de init
+    #   - ./docker/mssql/init:/docker-entrypoint-initdb.d
