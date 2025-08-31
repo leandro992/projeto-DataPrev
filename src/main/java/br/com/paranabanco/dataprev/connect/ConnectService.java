@@ -6,9 +6,13 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
 import org.springframework.batch.core.JobParameters;
 import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.repository.JobExecutionAlreadyRunningException;
+import org.springframework.batch.core.repository.JobRestartException;
+import org.springframework.batch.core.JobParametersInvalidException;
 import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.List;
@@ -64,21 +68,30 @@ public class ConnectService {
     public Optional<Path> processar(String rotulo) {
         Integer n = ("FHMLCON16".equalsIgnoreCase(rotulo)) ? 6 : null;
         Optional<Path> destino = buscarArquivo(rotulo, n);
-        destino.ifPresent(this::executarJobComArquivo);
+        destino.ifPresent(arquivo -> executarJobComArquivo(arquivo));
         return destino;
     }
 
-    private void executarJobComArquivo(Path arquivo) {
+    private JobExecution executarJobComArquivo(Path arquivo) {
         try {
             JobParameters params = new JobParametersBuilder()
                     .addString("input.file", arquivo.toString())
                     .addLong("run.id", System.currentTimeMillis()) // garante unicidade
                     .toJobParameters();
             log.info("Disparando job cnabJob para arquivo {}", arquivo);
-            jobLauncher.run(cnabJob, params);
+            return jobLauncher.run(cnabJob, params);
+        } catch (JobExecutionAlreadyRunningException e) {
+            log.error("Job já em execução para o arquivo {}", arquivo, e);
+            throw new ConnectException("Job já em execução", e);
+        } catch (JobRestartException e) {
+            log.error("Falha ao reiniciar job para o arquivo {}", arquivo, e);
+            throw new ConnectException("Falha ao reiniciar job", e);
+        } catch (JobParametersInvalidException e) {
+            log.error("Parâmetros inválidos para o arquivo {}", arquivo, e);
+            throw new ConnectException("Parâmetros inválidos para execução do job", e);
         } catch (Exception e) {
             log.error("Falha ao executar job para arquivo {}", arquivo, e);
-            throw new RuntimeException("Falha ao executar job", e);
+            throw new ConnectException("Falha ao executar job", e);
         }
     }
 
