@@ -1,5 +1,7 @@
 package br.com.paranabanco.dataprev.utils;
 
+import br.com.paranabanco.dataprev.cnab.PositionalFormatter;
+import br.com.paranabanco.dataprev.infra.config.io.OutputPathResolver;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemStreamException;
