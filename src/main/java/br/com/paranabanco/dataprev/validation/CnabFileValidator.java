@@ -7,7 +7,8 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.List;
+import java.util.Iterator;
+import java.util.stream.Stream;
 
 /**
  * Validador físico de arquivos CNAB para os tipos suportados.
@@ -36,25 +37,13 @@ public class CnabFileValidator {
                 return resultadoBasico;
             }
             
-            // 2. Validação de tamanho de registro
-            ValidationResult resultadoTamanho = validarTamanhoRegistros(arquivo);
-            if (!resultadoTamanho.isValido()) {
-                return resultadoTamanho;
+            // 2. Validação de tamanho, fator de bloco e estrutura em um único fluxo
+            ValidationResult resultadoConteudo = validarConteudoArquivo(arquivo);
+            if (!resultadoConteudo.isValido()) {
+                return resultadoConteudo;
             }
-            
-            // 3. Validação de fator de bloco
-            ValidationResult resultadoFator = validarFatorBloco(arquivo);
-            if (!resultadoFator.isValido()) {
-                return resultadoFator;
-            }
-            
-            // 4. Validação de estrutura
-            ValidationResult resultadoEstrutura = validarEstrutura(arquivo);
-            if (!resultadoEstrutura.isValido()) {
-                return resultadoEstrutura;
-            }
-            
-            // 5. Validação de compatibilidade de rótulo
+
+            // 3. Validação de compatibilidade de rótulo
             ValidationResult resultadoRotulo = validarCompatibilidadeRotulo(arquivo);
             if (!resultadoRotulo.isValido()) {
                 return resultadoRotulo;
@@ -100,104 +89,52 @@ public class CnabFileValidator {
     }
 
     /**
-     * Valida se todos os registros têm 480 bytes
+     * Valida tamanho dos registros, fator de bloco e estrutura em uma única passagem
      */
-    private ValidationResult validarTamanhoRegistros(Path arquivo) {
-        try {
-            List<String> linhas = Files.readAllLines(arquivo);
-            int linhaInvalida = -1;
-            
-            for (int i = 0; i < linhas.size(); i++) {
-                String linha = linhas.get(i);
-                if (linha != null && !linha.trim().isEmpty()) {
-                    if (linha.length() != TAMANHO_REGISTRO_ESPERADO) {
-                        linhaInvalida = i + 1;
-                        break;
-                    }
-                }
-            }
-            
-            if (linhaInvalida != -1) {
-                return ValidationResult.erro(
-                    String.format("Registro na linha %d não tem %d bytes. Tamanho encontrado: %d bytes", 
-                        linhaInvalida, TAMANHO_REGISTRO_ESPERADO, 
-                        linhas.get(linhaInvalida - 1).length())
-                );
-            }
-            
-            log.debug("Validação de tamanho de registro: OK ({} registros de {} bytes)", 
-                linhas.size(), TAMANHO_REGISTRO_ESPERADO);
-            return ValidationResult.sucesso("Todos os registros têm 480 bytes");
-            
-        } catch (IOException e) {
-            return ValidationResult.erro("Erro ao ler arquivo para validação de tamanho: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Valida fator de bloco (u7)
-     */
-    private ValidationResult validarFatorBloco(Path arquivo) {
-        try {
-            List<String> linhas = Files.readAllLines(arquivo);
-            
-            // Verifica se o número de registros é múltiplo de 39
-            long registrosValidos = linhas.stream()
-                .filter(linha -> linha != null && !linha.trim().isEmpty())
-                .count();
-            
-            if (registrosValidos % FATOR_BLOCO_ESPERADO != 0) {
-                return ValidationResult.erro(
-                    String.format("Fator de bloco inválido. Esperado múltiplo de %d, encontrado %d registros", 
-                        FATOR_BLOCO_ESPERADO, registrosValidos)
-                );
-            }
-            
-            log.debug("Validação de fator de bloco: OK ({} registros, múltiplo de {})", 
-                registrosValidos, FATOR_BLOCO_ESPERADO);
-            return ValidationResult.sucesso("Fator de bloco válido (u39)");
-            
-        } catch (IOException e) {
-            return ValidationResult.erro("Erro ao validar fator de bloco: " + e.getMessage());
-        }
-    }
-
-    /**
-     * Valida estrutura: HEADER → DETALHE(s) → TRAILER
-     */
-    private ValidationResult validarEstrutura(Path arquivo) {
-        try {
-            List<String> linhas = Files.readAllLines(arquivo);
+    private ValidationResult validarConteudoArquivo(Path arquivo) {
+        try (Stream<String> linhasStream = Files.lines(arquivo)) {
+            Iterator<String> iterator = linhasStream.iterator();
+            int numeroLinha = 0;
+            long registrosValidos = 0;
             boolean headerArquivoEncontrado = false;
             boolean headerLoteEncontrado = false;
             boolean detalheEncontrado = false;
             boolean trailerLoteEncontrado = false;
             boolean trailerArquivoEncontrado = false;
-            
-            for (int i = 0; i < linhas.size(); i++) {
-                String linha = linhas.get(i);
+
+            while (iterator.hasNext()) {
+                String linha = iterator.next();
+                numeroLinha++;
+
                 if (linha == null || linha.trim().isEmpty()) {
                     continue;
                 }
-                
-                // Verifica se tem pelo menos 8 caracteres para ler o tipo de registro
-                if (linha.length() < 8) {
+
+                registrosValidos++;
+
+                if (linha.length() != TAMANHO_REGISTRO_ESPERADO) {
                     return ValidationResult.erro(
-                        String.format("Linha %d muito curta para identificar tipo de registro", i + 1)
+                        String.format("Registro na linha %d não tem %d bytes. Tamanho encontrado: %d bytes",
+                            numeroLinha, TAMANHO_REGISTRO_ESPERADO, linha.length())
                     );
                 }
-                
+
+                if (linha.length() < 8) {
+                    return ValidationResult.erro(
+                        String.format("Linha %d muito curta para identificar tipo de registro", numeroLinha)
+                    );
+                }
+
                 String tipoRegistro = linha.substring(7, 8);
                 String bancoLote = linha.substring(0, 7);
-                
-                // Validação de estrutura sequencial
+
                 if ("0".equals(tipoRegistro) && "0000000".equals(bancoLote)) {
                     if (headerArquivoEncontrado) {
                         return ValidationResult.erro("Múltiplos headers de arquivo encontrados");
                     }
                     headerArquivoEncontrado = true;
-                    log.debug("Header de arquivo encontrado na linha {}", i + 1);
-                    
+                    log.debug("Header de arquivo encontrado na linha {}", numeroLinha);
+
                 } else if ("1".equals(tipoRegistro) && bancoLote.startsWith("0001")) {
                     if (!headerArquivoEncontrado) {
                         return ValidationResult.erro("Header de lote encontrado antes do header de arquivo");
@@ -206,15 +143,15 @@ public class CnabFileValidator {
                         return ValidationResult.erro("Múltiplos headers de lote encontrados");
                     }
                     headerLoteEncontrado = true;
-                    log.debug("Header de lote encontrado na linha {}", i + 1);
-                    
+                    log.debug("Header de lote encontrado na linha {}", numeroLinha);
+
                 } else if ("3".equals(tipoRegistro) && bancoLote.startsWith("0001")) {
                     if (!headerLoteEncontrado) {
                         return ValidationResult.erro("Detalhe encontrado antes do header de lote");
                     }
                     detalheEncontrado = true;
-                    log.debug("Registro de detalhe encontrado na linha {}", i + 1);
-                    
+                    log.debug("Registro de detalhe encontrado na linha {}", numeroLinha);
+
                 } else if ("5".equals(tipoRegistro) && bancoLote.startsWith("0001")) {
                     if (!detalheEncontrado) {
                         return ValidationResult.erro("Trailer de lote encontrado sem registros de detalhe");
@@ -223,8 +160,8 @@ public class CnabFileValidator {
                         return ValidationResult.erro("Múltiplos trailers de lote encontrados");
                     }
                     trailerLoteEncontrado = true;
-                    log.debug("Trailer de lote encontrado na linha {}", i + 1);
-                    
+                    log.debug("Trailer de lote encontrado na linha {}", numeroLinha);
+
                 } else if ("9".equals(tipoRegistro) && "0000000".equals(bancoLote)) {
                     if (!trailerLoteEncontrado) {
                         return ValidationResult.erro("Trailer de arquivo encontrado sem trailer de lote");
@@ -233,11 +170,10 @@ public class CnabFileValidator {
                         return ValidationResult.erro("Múltiplos trailers de arquivo encontrados");
                     }
                     trailerArquivoEncontrado = true;
-                    log.debug("Trailer de arquivo encontrado na linha {}", i + 1);
+                    log.debug("Trailer de arquivo encontrado na linha {}", numeroLinha);
                 }
             }
-            
-            // Validações finais
+
             if (!headerArquivoEncontrado) {
                 return ValidationResult.erro("Header de arquivo não encontrado");
             }
@@ -253,12 +189,19 @@ public class CnabFileValidator {
             if (!trailerArquivoEncontrado) {
                 return ValidationResult.erro("Trailer de arquivo não encontrado");
             }
-            
-            log.debug("Validação de estrutura: OK (HEADER → DETALHE → TRAILER)");
-            return ValidationResult.sucesso("Estrutura CNAB válida");
-            
+
+            if (registrosValidos % FATOR_BLOCO_ESPERADO != 0) {
+                return ValidationResult.erro(
+                    String.format("Fator de bloco inválido. Esperado múltiplo de %d, encontrado %d registros",
+                        FATOR_BLOCO_ESPERADO, registrosValidos)
+                );
+            }
+
+            log.debug("Validação de conteúdo: OK ({} registros)", registrosValidos);
+            return ValidationResult.sucesso("Conteúdo do arquivo válido");
+
         } catch (IOException e) {
-            return ValidationResult.erro("Erro ao validar estrutura do arquivo: " + e.getMessage());
+            return ValidationResult.erro("Erro ao processar arquivo: " + e.getMessage());
         }
     }
 
