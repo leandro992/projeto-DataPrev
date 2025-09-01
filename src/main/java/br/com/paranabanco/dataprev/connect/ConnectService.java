@@ -100,15 +100,16 @@ public class ConnectService {
                 arquivo.getFileName().toString(),
                 arquivo.toString(),
                 tamanhoBytes,
-                hashArquivo
+                hashArquivo,
+                null
             );
             
         } catch (IllegalArgumentException e) {
             log.error("Erro de validação na busca de arquivo: {}", e.getMessage());
-            return BuscarArquivoResponse.erro(request.rotulo(), e.getMessage());
+            return BuscarArquivoResponse.erro(request.rotulo(), "REQUISICAO_INVALIDA", e.getMessage());
         } catch (Exception e) {
             log.error("Erro inesperado na busca de arquivo para rótulo {}: {}", request.rotulo(), e.getMessage(), e);
-            return BuscarArquivoResponse.erro(request.rotulo(), "Erro interno: " + e.getMessage());
+            return BuscarArquivoResponse.erro(request.rotulo(), "ERRO_INTERNO", "Erro interno: " + e.getMessage());
         }
     }
 
@@ -157,17 +158,19 @@ public class ConnectService {
                         response.nomeArquivo(),
                         response.caminhoLocal(),
                         response.tamanhoBytes(),
-                        response.hashArquivo()
+                        response.hashArquivo(),
+                        validacao.codigo()
                     );
                 } else {
                     log.error("Arquivo não passou na validação: {}", validacao.getMensagemFormatada());
-                    return BuscarArquivoResponse.erro(request.rotulo(), 
+                    return BuscarArquivoResponse.erro(request.rotulo(),
+                        validacao.codigo(),
                         "Arquivo baixado mas falhou na validação: " + validacao.getMensagemFormatada());
                 }
                 
             } catch (Exception e) {
                 log.error("Erro ao validar arquivo {}: {}", response.nomeArquivo(), e.getMessage(), e);
-                return BuscarArquivoResponse.erro(request.rotulo(), "Erro na validação: " + e.getMessage());
+                return BuscarArquivoResponse.erro(request.rotulo(), "VALIDACAO_ERRO", "Erro na validação: " + e.getMessage());
             }
         }
         
@@ -190,12 +193,13 @@ public class ConnectService {
                 
                 if (!validacao.isValido()) {
                     log.error("Arquivo não passou na validação física: {}", validacao.getMensagemFormatada());
-                    return BuscarArquivoResponse.erro(request.rotulo(), 
+                    return BuscarArquivoResponse.erro(request.rotulo(),
+                        validacao.codigo(),
                         "Arquivo baixado mas falhou na validação física: " + validacao.getMensagemFormatada());
                 }
-                
+
                 log.info("Arquivo passou na validação física: {}", validacao.getMensagemFormatada());
-                
+
                 // Executa job específico baseado no tipo de rótulo
                 TipoRotulo tipoRotulo = TipoRotulo.fromRotulo(request.rotulo());
                 if (tipoRotulo == TipoRotulo.CONCESSAO) {
@@ -203,14 +207,23 @@ public class ConnectService {
                 } else {
                     executarJobComArquivo(arquivo);
                 }
-                
+
                 log.info("Job executado com sucesso para arquivo: {}", response.nomeArquivo());
+
+                return BuscarArquivoResponse.sucesso(
+                    request.rotulo(),
+                    response.nomeArquivo(),
+                    response.caminhoLocal(),
+                    response.tamanhoBytes(),
+                    response.hashArquivo(),
+                    validacao.codigo()
+                );
             } catch (Exception e) {
                 log.error("Erro ao executar job para arquivo {}: {}", response.nomeArquivo(), e.getMessage(), e);
-                return BuscarArquivoResponse.erro(request.rotulo(), "Arquivo baixado mas erro na execução do job: " + e.getMessage());
+                return BuscarArquivoResponse.erro(request.rotulo(), "ERRO_JOB", "Arquivo baixado mas erro na execução do job: " + e.getMessage());
             }
         }
-        
+
         return response;
     }
 

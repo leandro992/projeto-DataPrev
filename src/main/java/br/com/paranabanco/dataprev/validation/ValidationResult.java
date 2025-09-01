@@ -5,6 +5,7 @@ package br.com.paranabanco.dataprev.validation;
  */
 public record ValidationResult(
     boolean valido,
+    String codigo,
     String mensagem,
     String detalhes
 ) {
@@ -12,29 +13,29 @@ public record ValidationResult(
     /**
      * Cria um resultado de sucesso
      */
-    public static ValidationResult sucesso(String mensagem) {
-        return new ValidationResult(true, mensagem, null);
+    public static ValidationResult sucesso(String codigo, String mensagem) {
+        return new ValidationResult(true, codigo, mensagem, null);
     }
     
     /**
      * Cria um resultado de sucesso com detalhes
      */
-    public static ValidationResult sucesso(String mensagem, String detalhes) {
-        return new ValidationResult(true, mensagem, detalhes);
+    public static ValidationResult sucesso(String codigo, String mensagem, String detalhes) {
+        return new ValidationResult(true, codigo, mensagem, detalhes);
     }
     
     /**
      * Cria um resultado de erro
      */
-    public static ValidationResult erro(String mensagem) {
-        return new ValidationResult(false, mensagem, null);
+    public static ValidationResult erro(String codigo, String mensagem) {
+        return new ValidationResult(false, codigo, mensagem, null);
     }
     
     /**
      * Cria um resultado de erro com detalhes
      */
-    public static ValidationResult erro(String mensagem, String detalhes) {
-        return new ValidationResult(false, mensagem, detalhes);
+    public static ValidationResult erro(String codigo, String mensagem, String detalhes) {
+        return new ValidationResult(false, codigo, mensagem, detalhes);
     }
     
     /**
@@ -55,10 +56,12 @@ public record ValidationResult(
      * Retorna a mensagem formatada
      */
     public String getMensagemFormatada() {
+        String base = (codigo != null && !codigo.trim().isEmpty()) ?
+            String.format("[%s] %s", codigo, mensagem) : mensagem;
         if (detalhes != null && !detalhes.trim().isEmpty()) {
-            return String.format("%s - Detalhes: %s", mensagem, detalhes);
+            return String.format("%s - Detalhes: %s", base, detalhes);
         }
-        return mensagem;
+        return base;
     }
 }
 

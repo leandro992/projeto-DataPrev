@@ -20,21 +20,23 @@ public record BuscarArquivoResponse(
     
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     LocalDateTime dataDownload,
-    
+
     String status,
-    
+
+    String codigo,
+
     String mensagem,
-    
+
     Long tamanhoBytes,
-    
+
     String hashArquivo
 ) {
     
     /**
      * Cria uma resposta de sucesso
      */
-    public static BuscarArquivoResponse sucesso(String rotulo, String nomeArquivo, String caminhoLocal, 
-                                               Long tamanhoBytes, String hashArquivo) {
+    public static BuscarArquivoResponse sucesso(String rotulo, String nomeArquivo, String caminhoLocal,
+                                               Long tamanhoBytes, String hashArquivo, String codigo) {
         return new BuscarArquivoResponse(
             rotulo,
             TipoRotulo.fromRotulo(rotulo),
@@ -42,6 +44,7 @@ public record BuscarArquivoResponse(
             caminhoLocal,
             LocalDateTime.now(),
             "SUCESSO",
+            codigo,
             "Arquivo encontrado e baixado com sucesso",
             tamanhoBytes,
             hashArquivo
@@ -51,7 +54,7 @@ public record BuscarArquivoResponse(
     /**
      * Cria uma resposta de erro
      */
-    public static BuscarArquivoResponse erro(String rotulo, String mensagem) {
+    public static BuscarArquivoResponse erro(String rotulo, String codigo, String mensagem) {
         return new BuscarArquivoResponse(
             rotulo,
             rotulo != null ? TipoRotulo.fromRotulo(rotulo) : null,
@@ -59,6 +62,7 @@ public record BuscarArquivoResponse(
             null,
             LocalDateTime.now(),
             "ERRO",
+            codigo,
             mensagem,
             null,
             null
@@ -76,6 +80,7 @@ public record BuscarArquivoResponse(
             null,
             LocalDateTime.now(),
             "NAO_ENCONTRADO",
+            "ARQUIVO_NAO_ENCONTRADO",
             "Nenhum arquivo encontrado para o rótulo " + rotulo,
             null,
             null
