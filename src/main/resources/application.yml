@@ -1,0 +1,92 @@
+spring:
+  application:
+    name: dataprev
+
+  datasource:
+    url: ${DB_URL:jdbc:sqlserver://localhost:1433;databaseName=dataprevdb;encrypt=false;trustServerCertificate=true;loginTimeout=10}
+    username: ${DB_USER:appuser}
+    password: ${DB_PASSWORD:AppTeste#1}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      validation-timeout: 5000
+      initialization-fail-timeout: -1   # não falhar se DB ainda não existe
+
+  jpa:
+    database-platform: org.hibernate.dialect.SQLServerDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    clean-disabled: true
+    validate-on-migrate: true
+    locations: classpath:db/migration
+
+  batch:
+    jdbc:
+      initialize-schema: always # inicializa schema do Spring Batch
+    job:
+      enabled: false            # não roda jobs no startup
+      registry:
+       enabled: true           # habilita registro de jobs
+
+  sql:
+    init:
+      mode: never               # usa somente Flyway em DEV
+
+# Configuração de porta explícita
+server:
+  port: 8080
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: DEBUG
+        orm:
+          tool:
+            schema: DEBUG
+
+# Swagger / OpenAPI (springdoc)
+springdoc:
+  api-docs:
+    enabled: true               # /v3/api-docs e /v3/api-docs.yaml
+  swagger-ui:
+    enabled: true               # /swagger-ui.html
+    # path: /swagger-ui.html    # opcional (padrão já é /swagger-ui.html)
+
+---
+
+
+springdoc:
+  api-docs.enabled: true
+  swagger-ui.enabled: true
+
+
+app:
+  dev:
+    bootstrap:
+      enabled: true
+      database-name: dataprevdb
+      admin:
+        url: jdbc:sqlserver://localhost:1433;databaseName=master;encrypt=false;trustServerCertificate=true;loginTimeout=10
+        username: sa
+        password: Str0ng!Passw0rd
+  cnab:
+    file: classpath:test-cnab-480.txt     # arquivo de ENTRADA p/ testes CNAB-480
+    charset: US-ASCII
+    # Diretório de saída apontando para a pasta de resources do projeto (modo dev/IDE)
+    output-dir: "src/main/resources/generated"
+    # Nome do arquivo de saída. Ajuste conforme rótulo desejado.
+    output-name: "processed-cnab-480-output.txt"
+  jobs:
+    runOnStartup: true
+
+# Caminho do arquivo para o bean Reader (Resource)
+leitura:
+  arquivo:
+    caminho: classpath:test-cnab-480.txt

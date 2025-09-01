@@ -1,5 +1,7 @@
 package br.com.paranabanco.dataprev.utils;
 
+import br.com.paranabanco.dataprev.cnab.PositionalFormatter;
+import br.com.paranabanco.dataprev.infra.config.io.OutputPathResolver;
 import org.springframework.batch.item.Chunk;
 import org.springframework.batch.item.ExecutionContext;
 import org.springframework.batch.item.ItemStreamException;
@@ -64,9 +66,9 @@ public class CnabItemWriter implements ItemStreamWriter<String> {
     }
 
     private static String defaultName() {
-        // Ex.: HMLCES18.B254.DyyyyMMddHHmmss.txt
+        // Ex.: FHMLES18.B254.DyyyyMMddHHmmss.txt (Especial)
         String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        return "HMLCES18.B254.D" + ts + ".txt";
+        return "FHMLES18.B254.D" + ts + ".txt";
     }
 
     @Override

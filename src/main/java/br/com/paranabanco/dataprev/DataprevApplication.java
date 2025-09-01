@@ -1,6 +1,6 @@
 package br.com.paranabanco.dataprev;
 
-import br.com.paranabanco.dataprev.utils.AppCnabProperties;
+import br.com.paranabanco.dataprev.cnab.AppCnabProperties;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;

@@ -1,0 +1,101 @@
+spring:
+  application:
+    name: dataprev
+
+  datasource:
+    url: jdbc:sqlserver://localhost:1433;databaseName=dataprevdb;encrypt=false;trustServerCertificate=true;loginTimeout=10
+    username: appuser
+    password: AppUser#2024
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+      validation-timeout: 5000
+      initialization-fail-timeout: -1   # não falhar se DB ainda não existe
+
+  jpa:
+    database-platform: org.hibernate.dialect.SQLServerDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: true
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    clean-disabled: false
+    validate-on-migrate: true
+    locations: classpath:db/migration
+
+  batch:
+    jdbc:
+      initialize-schema: always # inicializa schema do Spring Batch
+    job:
+      enabled: false            # não roda jobs no startup
+      registry:
+       enabled: true           # habilita registro de jobs
+
+  sql:
+    init:
+      mode: never               # usa somente Flyway em DEV
+
+# Configuração de porta explícita
+server:
+  port: 8080
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: DEBUG
+        orm:
+          tool:
+            schema: DEBUG
+
+# Swagger / OpenAPI (springdoc)
+springdoc:
+  api-docs:
+    enabled: true               # /v3/api-docs e /v3/api-docs.yaml
+  swagger-ui:
+    enabled: true               # /swagger-ui.html
+    # path: /swagger-ui.html    # opcional (padrão já é /swagger-ui.html)
+
+---
+
+
+springdoc:
+  api-docs.enabled: true
+  swagger-ui.enabled: true
+
+
+app:
+  dev:
+    bootstrap:
+      enabled: true
+      reset-users: true
+      database-name: dataprevdb
+      admin:
+        url: jdbc:sqlserver://localhost:1433;databaseName=master;encrypt=false;trustServerCertificate=true;loginTimeout=10
+        username: sa
+        password: Str0ng!Passw0rd
+  cnab:
+    file: classpath:FHMLES18.B254.D0000001.txt    # arquivo de ENTRADA p/ testes CNAB Especial
+    outputDir: ./connect-volume/outbox        # remessas
+    outputName: FHMLES18.B254.D0000001.d     # ← Testando com Especial (FHMLES18)
+    retornoDir: ./connect-volume/retorno      # retornos
+    charset: ISO-8859-1
+  jobs:
+    runOnStartup: true
+
+# Caminho do arquivo para o bean Reader (Resource)
+leitura:
+  arquivo:
+    caminho: classpath:test-cnab-480.txt
+
+# Configuração do CONNECT (DEV - SFTP simulado)
+connect:
+  host: 127.0.0.1 # sftp.exemplo.com
+  port: 2222   # porta padrão
+  username: connect
+  password: connect
+  remote-dir: retorno  # diretório onde os arquivos residem
+  timeout-ms: 30000

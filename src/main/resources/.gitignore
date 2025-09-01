@@ -1,0 +1,5 @@
+*
+!.gitignore
+!application.yml
+!application-dev.yml
+!FHMLES18.B254.D0000001.txt

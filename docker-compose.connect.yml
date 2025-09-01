@@ -1,0 +1,22 @@
+version: "3.8"
+services:
+  connect-sftp:
+    image: atmoz/sftp:latest
+    ports:
+      - "2222:22"
+    volumes:
+      - ./connect-volume/outbox:/home/connect/outbox
+      - ./connect-volume/retorno:/home/connect/retorno
+      - ./connect-volume/inbox:/home/connect/inbox
+    command: "connect:connect:1001::outbox,retorno,inbox"
+
+  dataprev-mock:
+    image: ubuntu:22.04
+    depends_on: [connect-sftp]
+    volumes:
+      - ./connect-volume/outbox:/work/outbox
+      - ./connect-volume/retorno:/work/retorno
+      - ./connect-volume/inbox:/work/inbox
+      - ./mock-processor.sh:/work/mock-processor.sh
+    working_dir: /work
+    command: bash -c "chmod +x mock-processor.sh && ./mock-processor.sh"
