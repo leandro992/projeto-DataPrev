@@ -7,7 +7,9 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Validador físico de arquivos CNAB para os tipos suportados.
@@ -169,65 +171,74 @@ public class CnabFileValidator {
         try {
             List<String> linhas = Files.readAllLines(arquivo);
             boolean headerArquivoEncontrado = false;
-            boolean headerLoteEncontrado = false;
-            boolean detalheEncontrado = false;
-            boolean trailerLoteEncontrado = false;
             boolean trailerArquivoEncontrado = false;
-            
+            String loteAtual = null;
+            Set<String> lotes = new HashSet<>();
+            Set<String> lotesComDetalhe = new HashSet<>();
+            Set<String> lotesComTrailer = new HashSet<>();
+
             for (int i = 0; i < linhas.size(); i++) {
                 String linha = linhas.get(i);
                 if (linha == null || linha.trim().isEmpty()) {
                     continue;
                 }
-                
+
                 // Verifica se tem pelo menos 8 caracteres para ler o tipo de registro
                 if (linha.length() < 8) {
                     return ValidationResult.erro(
                         String.format("Linha %d muito curta para identificar tipo de registro", i + 1)
                     );
                 }
-                
+
                 String tipoRegistro = linha.substring(7, 8);
-                String bancoLote = linha.substring(0, 7);
-                
+                String numeroLote = linha.substring(3, 7);
+
                 // Validação de estrutura sequencial
-                if ("0".equals(tipoRegistro) && "0000000".equals(bancoLote)) {
+                if ("0".equals(tipoRegistro) && "0000".equals(numeroLote)) {
                     if (headerArquivoEncontrado) {
                         return ValidationResult.erro("Múltiplos headers de arquivo encontrados");
                     }
                     headerArquivoEncontrado = true;
                     log.debug("Header de arquivo encontrado na linha {}", i + 1);
-                    
-                } else if ("1".equals(tipoRegistro) && bancoLote.startsWith("0001")) {
+
+                } else if ("1".equals(tipoRegistro)) {
                     if (!headerArquivoEncontrado) {
                         return ValidationResult.erro("Header de lote encontrado antes do header de arquivo");
                     }
-                    if (headerLoteEncontrado) {
-                        return ValidationResult.erro("Múltiplos headers de lote encontrados");
+                    if (loteAtual != null) {
+                        return ValidationResult.erro("Novo header de lote encontrado antes do trailer do lote anterior");
                     }
-                    headerLoteEncontrado = true;
-                    log.debug("Header de lote encontrado na linha {}", i + 1);
-                    
-                } else if ("3".equals(tipoRegistro) && bancoLote.startsWith("0001")) {
-                    if (!headerLoteEncontrado) {
-                        return ValidationResult.erro("Detalhe encontrado antes do header de lote");
+                    loteAtual = numeroLote;
+                    if (lotes.contains(numeroLote)) {
+                        return ValidationResult.erro("Múltiplos headers para o lote " + numeroLote);
                     }
-                    detalheEncontrado = true;
-                    log.debug("Registro de detalhe encontrado na linha {}", i + 1);
-                    
-                } else if ("5".equals(tipoRegistro) && bancoLote.startsWith("0001")) {
-                    if (!detalheEncontrado) {
+                    lotes.add(numeroLote);
+                    log.debug("Header de lote {} encontrado na linha {}", numeroLote, i + 1);
+
+                } else if ("3".equals(tipoRegistro)) {
+                    if (loteAtual == null || !numeroLote.equals(loteAtual)) {
+                        return ValidationResult.erro("Detalhe encontrado fora do lote atual");
+                    }
+                    lotesComDetalhe.add(numeroLote);
+                    log.debug("Registro de detalhe do lote {} encontrado na linha {}", numeroLote, i + 1);
+
+                } else if ("5".equals(tipoRegistro)) {
+                    if (loteAtual == null || !numeroLote.equals(loteAtual)) {
+                        return ValidationResult.erro("Trailer de lote encontrado fora de sequência");
+                    }
+                    if (!lotesComDetalhe.contains(numeroLote)) {
                         return ValidationResult.erro("Trailer de lote encontrado sem registros de detalhe");
                     }
-                    if (trailerLoteEncontrado) {
-                        return ValidationResult.erro("Múltiplos trailers de lote encontrados");
+                    if (lotesComTrailer.contains(numeroLote)) {
+                        return ValidationResult.erro("Múltiplos trailers para o lote " + numeroLote);
                     }
-                    trailerLoteEncontrado = true;
-                    log.debug("Trailer de lote encontrado na linha {}", i + 1);
-                    
-                } else if ("9".equals(tipoRegistro) && "0000000".equals(bancoLote)) {
-                    if (!trailerLoteEncontrado) {
-                        return ValidationResult.erro("Trailer de arquivo encontrado sem trailer de lote");
+                    lotesComTrailer.add(numeroLote);
+                    loteAtual = null;
+                    log.debug("Trailer de lote {} encontrado na linha {}", numeroLote, i + 1);
+
+                } else if ("9".equals(tipoRegistro) && "0000".equals(numeroLote)) {
+                    if (loteAtual != null) {
+                        return ValidationResult.erro("Trailer de arquivo encontrado antes do trailer do lote");
                     }
                     if (trailerArquivoEncontrado) {
                         return ValidationResult.erro("Múltiplos trailers de arquivo encontrados");
@@ -236,27 +247,34 @@ public class CnabFileValidator {
                     log.debug("Trailer de arquivo encontrado na linha {}", i + 1);
                 }
             }
-            
+
             // Validações finais
             if (!headerArquivoEncontrado) {
                 return ValidationResult.erro("Header de arquivo não encontrado");
             }
-            if (!headerLoteEncontrado) {
-                return ValidationResult.erro("Header de lote não encontrado");
-            }
-            if (!detalheEncontrado) {
-                return ValidationResult.erro("Nenhum registro de detalhe encontrado");
-            }
-            if (!trailerLoteEncontrado) {
-                return ValidationResult.erro("Trailer de lote não encontrado");
-            }
             if (!trailerArquivoEncontrado) {
                 return ValidationResult.erro("Trailer de arquivo não encontrado");
             }
-            
+            if (loteAtual != null) {
+                return ValidationResult.erro("Trailer de lote não encontrado para o lote " + loteAtual);
+            }
+            for (String lote : lotes) {
+                if (!lotesComDetalhe.contains(lote)) {
+                    return ValidationResult.erro("Nenhum registro de detalhe encontrado para o lote " + lote);
+                }
+                if (!lotesComTrailer.contains(lote)) {
+                    return ValidationResult.erro("Trailer de lote não encontrado para o lote " + lote);
+                }
+            }
+            boolean lote20 = lotes.contains("0020");
+            boolean lote21 = lotes.contains("0021");
+            if (lote20 ^ lote21) {
+                return ValidationResult.erro("Lotes 20 e 21 devem estar presentes em pares");
+            }
+
             log.debug("Validação de estrutura: OK (HEADER → DETALHE → TRAILER)");
             return ValidationResult.sucesso("Estrutura CNAB válida");
-            
+
         } catch (IOException e) {
             return ValidationResult.erro("Erro ao validar estrutura do arquivo: " + e.getMessage());
         }
