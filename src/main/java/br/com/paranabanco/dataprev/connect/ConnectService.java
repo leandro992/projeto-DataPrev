@@ -66,7 +66,14 @@ public class ConnectService {
     public Optional<Path> processar(String rotulo) {
         Integer n = ("FHMLCON16".equalsIgnoreCase(rotulo)) ? 6 : null;
         Optional<Path> destino = buscarArquivo(rotulo, n);
-        destino.ifPresent(this::executarJobComArquivo);
+        destino.ifPresent(arquivo -> {
+            ValidationResult cabecalhoTrailer = cnabFileValidator.validarHeaderTrailer(arquivo);
+            if (cabecalhoTrailer.isValido()) {
+                executarJobComArquivo(arquivo);
+            } else {
+                log.error("Arquivo {} falhou na validação inicial: {}", arquivo.getFileName(), cabecalhoTrailer.getMensagemFormatada());
+            }
+        });
         return destino;
     }
 
@@ -146,10 +153,17 @@ public class ConnectService {
         if ("SUCESSO".equals(response.status())) {
             try {
                 Path arquivo = Path.of(response.caminhoLocal());
-                
+                log.info("Validando header e trailer do arquivo: {}", response.nomeArquivo());
+                ValidationResult cabecalhoTrailer = cnabFileValidator.validarHeaderTrailer(arquivo);
+                if (!cabecalhoTrailer.isValido()) {
+                    log.error("Arquivo não passou na validação de header/trailer: {}", cabecalhoTrailer.getMensagemFormatada());
+                    return BuscarArquivoResponse.erro(request.rotulo(),
+                        "Arquivo baixado mas falhou na validação de header/trailer: " + cabecalhoTrailer.getMensagemFormatada());
+                }
+
                 log.info("Iniciando validação física do arquivo: {}", response.nomeArquivo());
                 ValidationResult validacao = cnabFileValidator.validarArquivo(arquivo);
-                
+
                 if (validacao.isValido()) {
                     log.info("Arquivo validado com sucesso: {}", validacao.getMensagemFormatada());
                     return BuscarArquivoResponse.sucesso(
@@ -161,10 +175,10 @@ public class ConnectService {
                     );
                 } else {
                     log.error("Arquivo não passou na validação: {}", validacao.getMensagemFormatada());
-                    return BuscarArquivoResponse.erro(request.rotulo(), 
+                    return BuscarArquivoResponse.erro(request.rotulo(),
                         "Arquivo baixado mas falhou na validação: " + validacao.getMensagemFormatada());
                 }
-                
+
             } catch (Exception e) {
                 log.error("Erro ao validar arquivo {}: {}", response.nomeArquivo(), e.getMessage(), e);
                 return BuscarArquivoResponse.erro(request.rotulo(), "Erro na validação: " + e.getMessage());
@@ -183,17 +197,26 @@ public class ConnectService {
         if ("SUCESSO".equals(response.status())) {
             try {
                 Path arquivo = Path.of(response.caminhoLocal());
-                
-                // Validação física do arquivo antes do processamento
+
+                // Validação rápida de header e trailer
+                log.info("Validando header e trailer do arquivo: {}", response.nomeArquivo());
+                ValidationResult cabecalhoTrailer = cnabFileValidator.validarHeaderTrailer(arquivo);
+                if (!cabecalhoTrailer.isValido()) {
+                    log.error("Arquivo não passou na validação de header/trailer: {}", cabecalhoTrailer.getMensagemFormatada());
+                    return BuscarArquivoResponse.erro(request.rotulo(),
+                        "Arquivo baixado mas falhou na validação de header/trailer: " + cabecalhoTrailer.getMensagemFormatada());
+                }
+
+                // Validação física completa do arquivo antes do processamento
                 log.info("Iniciando validação física do arquivo: {}", response.nomeArquivo());
                 ValidationResult validacao = cnabFileValidator.validarArquivo(arquivo);
-                
+
                 if (!validacao.isValido()) {
                     log.error("Arquivo não passou na validação física: {}", validacao.getMensagemFormatada());
-                    return BuscarArquivoResponse.erro(request.rotulo(), 
+                    return BuscarArquivoResponse.erro(request.rotulo(),
                         "Arquivo baixado mas falhou na validação física: " + validacao.getMensagemFormatada());
                 }
-                
+
                 log.info("Arquivo passou na validação física: {}", validacao.getMensagemFormatada());
                 
                 // Executa job específico baseado no tipo de rótulo

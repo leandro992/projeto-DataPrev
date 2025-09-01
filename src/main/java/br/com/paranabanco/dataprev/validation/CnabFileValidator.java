@@ -4,6 +4,7 @@ import br.com.paranabanco.dataprev.enumeration.TipoRotulo;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,8 +21,48 @@ public class CnabFileValidator {
     // Constantes de validação
     private static final int TAMANHO_REGISTRO_ESPERADO = 480;
     private static final int FATOR_BLOCO_ESPERADO = 39;
-    
 
+
+
+    /**
+     * Valida apenas o header e o trailer de um arquivo CNAB.
+     * Lê somente a primeira e a última linha para evitar processamento desnecessário
+     * quando esses registros estiverem incorretos.
+     */
+    public ValidationResult validarHeaderTrailer(Path arquivo) {
+        try (BufferedReader reader = Files.newBufferedReader(arquivo)) {
+            String primeiraLinha = reader.readLine();
+            if (primeiraLinha == null || primeiraLinha.length() < 8) {
+                return ValidationResult.erro("Header de arquivo inexistente ou inválido");
+            }
+
+            if (!"0000000".equals(primeiraLinha.substring(0, 7)) ||
+                !"0".equals(primeiraLinha.substring(7, 8))) {
+                return ValidationResult.erro("Header de arquivo inválido");
+            }
+
+            String linha;
+            String ultimaLinha = null;
+            while ((linha = reader.readLine()) != null) {
+                if (linha != null && !linha.trim().isEmpty()) {
+                    ultimaLinha = linha;
+                }
+            }
+
+            if (ultimaLinha == null || ultimaLinha.length() < 8) {
+                return ValidationResult.erro("Trailer de arquivo inexistente ou inválido");
+            }
+
+            if (!"0000000".equals(ultimaLinha.substring(0, 7)) ||
+                !"9".equals(ultimaLinha.substring(7, 8))) {
+                return ValidationResult.erro("Trailer de arquivo inválido");
+            }
+
+            return ValidationResult.sucesso("Header e trailer válidos");
+        } catch (IOException e) {
+            return ValidationResult.erro("Erro ao validar header/trailer: " + e.getMessage());
+        }
+    }
 
     /**
      * Valida um arquivo CNAB completo
