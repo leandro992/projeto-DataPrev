@@ -11,7 +11,7 @@ import java.nio.file.Paths;
 @ConfigurationProperties(prefix = "app.cnab")
 public class AppCnabProperties {
     private Path outputDir = Paths.get("src/main/resources/generated");
-    private String outputName = "FSUBCON10.D0000001.d";
+    private String outputName = "FHMLES18.B254.D0000001.d";
     private Path retornoDir = Paths.get("src/main/resources/generated/mock-retorno");
     private Charset charset = StandardCharsets.ISO_8859_1;
     private Resource inputFile;

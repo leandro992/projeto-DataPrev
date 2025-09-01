@@ -78,9 +78,9 @@ app:
         username: sa
         password: Str0ng!Passw0rd
   cnab:
-    file: classpath:HMLCES18.B254.D0000001.txt    # arquivo de ENTRADA p/ testes CNAB-480
+    file: classpath:FHMLES18.B254.D0000001.txt    # arquivo de ENTRADA p/ testes CNAB Especial
     outputDir: ./connect-volume/outbox        # remessas
-    outputName: HMLCES18.B254.D0000001.d     # ← Testando com CNAB-480
+    outputName: FHMLES18.B254.D0000001.d     # ← Testando com Especial (FHMLES18)
     retornoDir: ./connect-volume/retorno      # retornos
     charset: ISO-8859-1
   jobs:
@@ -98,4 +98,4 @@ connect:
   username: connect
   password: connect
   remote-dir: retorno  # diretório onde os arquivos residem
-
+  timeout-ms: 30000

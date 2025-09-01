@@ -53,7 +53,7 @@ docker compose -f docker-compose.connect.yml up -d
 app:
   cnab:
     outputDir: ./connect-volume/outbox        # remessas
-    outputName: FSUBCON10.D0000001.d         # nome do arquivo
+    outputName: FHMLES18.B254.D0000001.d     # nome do arquivo (Especial)
     retornoDir: ./connect-volume/retorno      # retornos
     charset: ISO-8859-1
 ```

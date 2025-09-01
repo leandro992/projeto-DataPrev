@@ -27,7 +27,7 @@ import java.util.List;
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/api/creditos")
-public class CreditoController implements CreditoControllerSwagger {
+public class BatchController implements CreditoControllerSwagger {
 
     private final CreditoService creditoService;
     private final CreditoMapper creditoMapper;

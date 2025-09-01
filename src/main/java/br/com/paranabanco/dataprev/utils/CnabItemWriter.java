@@ -66,9 +66,9 @@ public class CnabItemWriter implements ItemStreamWriter<String> {
     }
 
     private static String defaultName() {
-        // Ex.: HMLCES18.B254.DyyyyMMddHHmmss.txt
+        // Ex.: FHMLES18.B254.DyyyyMMddHHmmss.txt (Especial)
         String ts = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMddHHmmss"));
-        return "HMLCES18.B254.D" + ts + ".txt";
+        return "FHMLES18.B254.D" + ts + ".txt";
     }
 
     @Override
