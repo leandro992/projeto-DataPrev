@@ -61,11 +61,11 @@ public class CnabFileValidator {
             }
             
             log.info("Arquivo validado com sucesso: {}", arquivo.getFileName());
-            return ValidationResult.sucesso("Arquivo validado com sucesso");
+            return ValidationResult.sucesso("VALIDACAO_OK", "Arquivo validado com sucesso");
             
         } catch (Exception e) {
             log.error("Erro durante validação do arquivo: {}", arquivo.getFileName(), e);
-            return ValidationResult.erro("Erro interno durante validação: " + e.getMessage());
+            return ValidationResult.erro("VALIDACAO_ERRO_INTERNO", "Erro interno durante validação: " + e.getMessage());
         }
     }
 
@@ -74,28 +74,28 @@ public class CnabFileValidator {
      */
     private ValidationResult validarArquivoBasico(Path arquivo) {
         if (arquivo == null) {
-            return ValidationResult.erro("Arquivo não pode ser nulo");
+            return ValidationResult.erro("ARQ_NULO", "Arquivo não pode ser nulo");
         }
-        
+
         if (!Files.exists(arquivo)) {
-            return ValidationResult.erro("Arquivo não existe: " + arquivo);
+            return ValidationResult.erro("ARQ_INEXISTENTE", "Arquivo não existe: " + arquivo);
         }
-        
+
         if (!Files.isRegularFile(arquivo)) {
-            return ValidationResult.erro("Caminho não é um arquivo: " + arquivo);
+            return ValidationResult.erro("ARQ_NAO_REGULAR", "Caminho não é um arquivo: " + arquivo);
         }
-        
+
         try {
             long tamanho = Files.size(arquivo);
             if (tamanho == 0) {
-                return ValidationResult.erro("Arquivo está vazio");
+                return ValidationResult.erro("ARQ_VAZIO", "Arquivo está vazio");
             }
-            
+
             log.debug("Arquivo básico validado: {} (tamanho: {} bytes)", arquivo.getFileName(), tamanho);
-            return ValidationResult.sucesso("Arquivo básico válido");
-            
+            return ValidationResult.sucesso("ARQ_BASICO_OK", "Arquivo básico válido");
+
         } catch (IOException e) {
-            return ValidationResult.erro("Erro ao acessar arquivo: " + e.getMessage());
+            return ValidationResult.erro("ARQ_ACESSO_ERRO", "Erro ao acessar arquivo: " + e.getMessage());
         }
     }
 
@@ -119,18 +119,19 @@ public class CnabFileValidator {
             
             if (linhaInvalida != -1) {
                 return ValidationResult.erro(
-                    String.format("Registro na linha %d não tem %d bytes. Tamanho encontrado: %d bytes", 
-                        linhaInvalida, TAMANHO_REGISTRO_ESPERADO, 
+                    "REG_TAMANHO_INVALIDO",
+                    String.format("Registro na linha %d não tem %d bytes. Tamanho encontrado: %d bytes",
+                        linhaInvalida, TAMANHO_REGISTRO_ESPERADO,
                         linhas.get(linhaInvalida - 1).length())
                 );
             }
-            
-            log.debug("Validação de tamanho de registro: OK ({} registros de {} bytes)", 
+
+            log.debug("Validação de tamanho de registro: OK ({} registros de {} bytes)",
                 linhas.size(), TAMANHO_REGISTRO_ESPERADO);
-            return ValidationResult.sucesso("Todos os registros têm 480 bytes");
-            
+            return ValidationResult.sucesso("REG_TAMANHO_OK", "Todos os registros têm 480 bytes");
+
         } catch (IOException e) {
-            return ValidationResult.erro("Erro ao ler arquivo para validação de tamanho: " + e.getMessage());
+            return ValidationResult.erro("REG_TAMANHO_ERRO", "Erro ao ler arquivo para validação de tamanho: " + e.getMessage());
         }
     }
 
@@ -148,17 +149,18 @@ public class CnabFileValidator {
             
             if (registrosValidos % FATOR_BLOCO_ESPERADO != 0) {
                 return ValidationResult.erro(
-                    String.format("Fator de bloco inválido. Esperado múltiplo de %d, encontrado %d registros", 
+                    "FATOR_BLOCO_INVALIDO",
+                    String.format("Fator de bloco inválido. Esperado múltiplo de %d, encontrado %d registros",
                         FATOR_BLOCO_ESPERADO, registrosValidos)
                 );
             }
-            
-            log.debug("Validação de fator de bloco: OK ({} registros, múltiplo de {})", 
+
+            log.debug("Validação de fator de bloco: OK ({} registros, múltiplo de {})",
                 registrosValidos, FATOR_BLOCO_ESPERADO);
-            return ValidationResult.sucesso("Fator de bloco válido (u39)");
-            
+            return ValidationResult.sucesso("FATOR_BLOCO_OK", "Fator de bloco válido (u39)");
+
         } catch (IOException e) {
-            return ValidationResult.erro("Erro ao validar fator de bloco: " + e.getMessage());
+            return ValidationResult.erro("FATOR_BLOCO_ERRO", "Erro ao validar fator de bloco: " + e.getMessage());
         }
     }
 
@@ -183,6 +185,7 @@ public class CnabFileValidator {
                 // Verifica se tem pelo menos 8 caracteres para ler o tipo de registro
                 if (linha.length() < 8) {
                     return ValidationResult.erro(
+                        "ESTRUTURA_LINHA_CURTA",
                         String.format("Linha %d muito curta para identificar tipo de registro", i + 1)
                     );
                 }
@@ -193,44 +196,44 @@ public class CnabFileValidator {
                 // Validação de estrutura sequencial
                 if ("0".equals(tipoRegistro) && "0000000".equals(bancoLote)) {
                     if (headerArquivoEncontrado) {
-                        return ValidationResult.erro("Múltiplos headers de arquivo encontrados");
+                        return ValidationResult.erro("ESTRUTURA_HEADER_ARQ_DUP", "Múltiplos headers de arquivo encontrados");
                     }
                     headerArquivoEncontrado = true;
                     log.debug("Header de arquivo encontrado na linha {}", i + 1);
                     
                 } else if ("1".equals(tipoRegistro) && bancoLote.startsWith("0001")) {
                     if (!headerArquivoEncontrado) {
-                        return ValidationResult.erro("Header de lote encontrado antes do header de arquivo");
+                        return ValidationResult.erro("ESTRUTURA_LOTE_ANTES_ARQ", "Header de lote encontrado antes do header de arquivo");
                     }
                     if (headerLoteEncontrado) {
-                        return ValidationResult.erro("Múltiplos headers de lote encontrados");
+                        return ValidationResult.erro("ESTRUTURA_HEADER_LOTE_DUP", "Múltiplos headers de lote encontrados");
                     }
                     headerLoteEncontrado = true;
                     log.debug("Header de lote encontrado na linha {}", i + 1);
                     
                 } else if ("3".equals(tipoRegistro) && bancoLote.startsWith("0001")) {
                     if (!headerLoteEncontrado) {
-                        return ValidationResult.erro("Detalhe encontrado antes do header de lote");
+                        return ValidationResult.erro("ESTRUTURA_DETALHE_SEM_HEADER", "Detalhe encontrado antes do header de lote");
                     }
                     detalheEncontrado = true;
                     log.debug("Registro de detalhe encontrado na linha {}", i + 1);
                     
                 } else if ("5".equals(tipoRegistro) && bancoLote.startsWith("0001")) {
                     if (!detalheEncontrado) {
-                        return ValidationResult.erro("Trailer de lote encontrado sem registros de detalhe");
+                        return ValidationResult.erro("ESTRUTURA_TRAILER_LOTE_SEM_DETALHE", "Trailer de lote encontrado sem registros de detalhe");
                     }
                     if (trailerLoteEncontrado) {
-                        return ValidationResult.erro("Múltiplos trailers de lote encontrados");
+                        return ValidationResult.erro("ESTRUTURA_TRAILER_LOTE_DUP", "Múltiplos trailers de lote encontrados");
                     }
                     trailerLoteEncontrado = true;
                     log.debug("Trailer de lote encontrado na linha {}", i + 1);
                     
                 } else if ("9".equals(tipoRegistro) && "0000000".equals(bancoLote)) {
                     if (!trailerLoteEncontrado) {
-                        return ValidationResult.erro("Trailer de arquivo encontrado sem trailer de lote");
+                        return ValidationResult.erro("ESTRUTURA_TRAILER_ARQ_SEM_LOTE", "Trailer de arquivo encontrado sem trailer de lote");
                     }
                     if (trailerArquivoEncontrado) {
-                        return ValidationResult.erro("Múltiplos trailers de arquivo encontrados");
+                        return ValidationResult.erro("ESTRUTURA_TRAILER_ARQ_DUP", "Múltiplos trailers de arquivo encontrados");
                     }
                     trailerArquivoEncontrado = true;
                     log.debug("Trailer de arquivo encontrado na linha {}", i + 1);
@@ -239,26 +242,26 @@ public class CnabFileValidator {
             
             // Validações finais
             if (!headerArquivoEncontrado) {
-                return ValidationResult.erro("Header de arquivo não encontrado");
+                return ValidationResult.erro("ESTRUTURA_HEADER_ARQ_NAO_ENCONTRADO", "Header de arquivo não encontrado");
             }
             if (!headerLoteEncontrado) {
-                return ValidationResult.erro("Header de lote não encontrado");
+                return ValidationResult.erro("ESTRUTURA_HEADER_LOTE_NAO_ENCONTRADO", "Header de lote não encontrado");
             }
             if (!detalheEncontrado) {
-                return ValidationResult.erro("Nenhum registro de detalhe encontrado");
+                return ValidationResult.erro("ESTRUTURA_DETALHE_NAO_ENCONTRADO", "Nenhum registro de detalhe encontrado");
             }
             if (!trailerLoteEncontrado) {
-                return ValidationResult.erro("Trailer de lote não encontrado");
+                return ValidationResult.erro("ESTRUTURA_TRAILER_LOTE_NAO_ENCONTRADO", "Trailer de lote não encontrado");
             }
             if (!trailerArquivoEncontrado) {
-                return ValidationResult.erro("Trailer de arquivo não encontrado");
+                return ValidationResult.erro("ESTRUTURA_TRAILER_ARQ_NAO_ENCONTRADO", "Trailer de arquivo não encontrado");
             }
-            
+
             log.debug("Validação de estrutura: OK (HEADER → DETALHE → TRAILER)");
-            return ValidationResult.sucesso("Estrutura CNAB válida");
-            
+            return ValidationResult.sucesso("ESTRUTURA_OK", "Estrutura CNAB válida");
+
         } catch (IOException e) {
-            return ValidationResult.erro("Erro ao validar estrutura do arquivo: " + e.getMessage());
+            return ValidationResult.erro("ESTRUTURA_ERRO", "Erro ao validar estrutura do arquivo: " + e.getMessage());
         }
     }
 
@@ -271,18 +274,18 @@ public class CnabFileValidator {
         // Extrai o rótulo do nome do arquivo
         String rotulo = extrairRotulo(nomeArquivo);
         if (rotulo == null) {
-            return ValidationResult.erro("Não foi possível extrair rótulo do nome do arquivo: " + nomeArquivo);
+            return ValidationResult.erro("ROTULO_INEXTRAVEL", "Não foi possível extrair rótulo do nome do arquivo: " + nomeArquivo);
         }
-        
+
         // Verifica se o rótulo é suportado
         if (!TipoRotulo.isRotuloSuportado(rotulo)) {
-            return ValidationResult.erro("Rótulo não suportado: " + rotulo);
+            return ValidationResult.erro("ROTULO_NAO_SUPORTADO", "Rótulo não suportado: " + rotulo);
         }
         
         TipoRotulo tipoRotulo = TipoRotulo.fromRotulo(rotulo);
         log.debug("Rótulo validado: {} ({})", rotulo, tipoRotulo.getDescricao());
         
-        return ValidationResult.sucesso("Rótulo compatível: " + rotulo);
+        return ValidationResult.sucesso("ROTULO_COMPATIVEL", "Rótulo compatível: " + rotulo);
     }
 
     /**
