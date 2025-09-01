@@ -8,8 +8,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Iterator;
-import java.util.stream.Stream;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 /**
  * Validador físico de arquivos CNAB para os tipos suportados.
@@ -22,7 +23,7 @@ public class CnabFileValidator {
     // Constantes de validação
     private static final int TAMANHO_REGISTRO_ESPERADO = 480;
     private static final int FATOR_BLOCO_ESPERADO = 39;
-
+    
 
 
     /**
@@ -138,10 +139,11 @@ public class CnabFileValidator {
             int numeroLinha = 0;
             long registrosValidos = 0;
             boolean headerArquivoEncontrado = false;
-            boolean headerLoteEncontrado = false;
-            boolean detalheEncontrado = false;
-            boolean trailerLoteEncontrado = false;
             boolean trailerArquivoEncontrado = false;
+            String loteAtual = null;
+            Set<String> lotes = new HashSet<>();
+            Set<String> lotesComDetalhe = new HashSet<>();
+            Set<String> lotesComTrailer = new HashSet<>();
 
             while (iterator.hasNext()) {
                 String linha = iterator.next();
@@ -169,7 +171,7 @@ public class CnabFileValidator {
                 }
 
                 String tipoRegistro = linha.substring(7, 8);
-                String bancoLote = linha.substring(0, 7);
+                String numeroLote = linha.substring(3, 7);
 
                 if ("0".equals(tipoRegistro) && "0000000".equals(bancoLote)) {
                     if (headerArquivoEncontrado) {
@@ -178,36 +180,44 @@ public class CnabFileValidator {
                     headerArquivoEncontrado = true;
                     log.debug("Header de arquivo encontrado na linha {}", numeroLinha);
 
-                } else if ("1".equals(tipoRegistro) && bancoLote.startsWith("0001")) {
+                } else if ("1".equals(tipoRegistro)) {
                     if (!headerArquivoEncontrado) {
                         return ValidationResult.erro("ESTRUTURA_LOTE_ANTES_ARQ", "Header de lote encontrado antes do header de arquivo");
                     }
-                    if (headerLoteEncontrado) {
-                        return ValidationResult.erro("ESTRUTURA_HEADER_LOTE_DUP", "Múltiplos headers de lote encontrados");
+                    if (loteAtual != null) {
+                        return ValidationResult.erro("Novo header de lote encontrado antes do trailer do lote anterior");
                     }
-                    headerLoteEncontrado = true;
-                    log.debug("Header de lote encontrado na linha {}", numeroLinha);
+                    loteAtual = numeroLote;
+                    if (lotes.contains(numeroLote)) {
+                        return ValidationResult.erro("Múltiplos headers para o lote " + numeroLote);
+                    }
+                    lotes.add(numeroLote);
+                    log.debug("Header de lote {} encontrado na linha {}", numeroLote, i + 1);
 
-                } else if ("3".equals(tipoRegistro) && bancoLote.startsWith("0001")) {
-                    if (!headerLoteEncontrado) {
-                        return ValidationResult.erro("ESTRUTURA_DETALHE_SEM_HEADER", "Detalhe encontrado antes do header de lote");
+                } else if ("3".equals(tipoRegistro)) {
+                    if (loteAtual == null || !numeroLote.equals(loteAtual)) {
+                        return ValidationResult.erro("Detalhe encontrado fora do lote atual");
                     }
-                    detalheEncontrado = true;
-                    log.debug("Registro de detalhe encontrado na linha {}", numeroLinha);
+                    lotesComDetalhe.add(numeroLote);
+                    log.debug("Registro de detalhe do lote {} encontrado na linha {}", numeroLote, i + 1);
 
-                } else if ("5".equals(tipoRegistro) && bancoLote.startsWith("0001")) {
-                    if (!detalheEncontrado) {
-                        return ValidationResult.erro("ESTRUTURA_TRAILER_LOTE_SEM_DETALHE", "Trailer de lote encontrado sem registros de detalhe");
+                } else if ("5".equals(tipoRegistro)) {
+                    if (loteAtual == null || !numeroLote.equals(loteAtual)) {
+                        return ValidationResult.erro("Trailer de lote encontrado fora de sequência");
                     }
-                    if (trailerLoteEncontrado) {
-                        return ValidationResult.erro("ESTRUTURA_TRAILER_LOTE_DUP", "Múltiplos trailers de lote encontrados");
+                    if (!lotesComDetalhe.contains(numeroLote)) {
+                        return ValidationResult.erro("Trailer de lote encontrado sem registros de detalhe");
                     }
-                    trailerLoteEncontrado = true;
-                    log.debug("Trailer de lote encontrado na linha {}", numeroLinha);
+                    if (lotesComTrailer.contains(numeroLote)) {
+                        return ValidationResult.erro("Múltiplos trailers para o lote " + numeroLote);
+                    }
+                    lotesComTrailer.add(numeroLote);
+                    loteAtual = null;
+                    log.debug("Trailer de lote {} encontrado na linha {}", numeroLote, i + 1);
 
-                } else if ("9".equals(tipoRegistro) && "0000000".equals(bancoLote)) {
-                    if (!trailerLoteEncontrado) {
-                        return ValidationResult.erro("ESTRUTURA_TRAILER_ARQ_SEM_LOTE", "Trailer de arquivo encontrado sem trailer de lote");
+                } else if ("9".equals(tipoRegistro) && "0000".equals(numeroLote)) {
+                    if (loteAtual != null) {
+                        return ValidationResult.erro("Trailer de arquivo encontrado antes do trailer do lote");
                     }
                     if (trailerArquivoEncontrado) {
                         return ValidationResult.erro("ESTRUTURA_TRAILER_ARQ_DUP", "Múltiplos trailers de arquivo encontrados");
@@ -238,6 +248,22 @@ public class CnabFileValidator {
                     String.format("Fator de bloco inválido. Esperado múltiplo de %d, encontrado %d registros",
                         FATOR_BLOCO_ESPERADO, registrosValidos)
                 );
+            }
+            if (loteAtual != null) {
+                return ValidationResult.erro("Trailer de lote não encontrado para o lote " + loteAtual);
+            }
+            for (String lote : lotes) {
+                if (!lotesComDetalhe.contains(lote)) {
+                    return ValidationResult.erro("Nenhum registro de detalhe encontrado para o lote " + lote);
+                }
+                if (!lotesComTrailer.contains(lote)) {
+                    return ValidationResult.erro("Trailer de lote não encontrado para o lote " + lote);
+                }
+            }
+            boolean lote20 = lotes.contains("0020");
+            boolean lote21 = lotes.contains("0021");
+            if (lote20 ^ lote21) {
+                return ValidationResult.erro("Lotes 20 e 21 devem estar presentes em pares");
             }
 
             log.debug("Validação de conteúdo: OK ({} registros)", registrosValidos);
