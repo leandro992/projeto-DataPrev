@@ -1,0 +1,54 @@
+spring:
+  application:
+    name: dataprev
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 4
+      connection-timeout: 30000
+      validation-timeout: 5000
+
+  jpa:
+    database-platform: org.hibernate.dialect.SQLServerDialect
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    clean-disabled: true
+    validate-on-migrate: true
+    locations: classpath:db/migration
+
+  batch:
+    jdbc:
+      initialize-schema: never
+    job:
+      enabled: false
+
+server:
+  port: 8080
+
+logging:
+  level:
+    org:
+      hibernate:
+        SQL: WARN
+        orm:
+          tool:
+            schema: WARN
+
+springdoc:
+  api-docs.enabled: true
+  swagger-ui.enabled: true
+
+app:
+  jobs:
+    runOnStartup: false
+
